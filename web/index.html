@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel Maps V2 | Simple Azure Maps</title>
+
+  <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" />
+  <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+
+  <link rel="stylesheet" href="./styles/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">Sentinel Maps V2</div>
+    <div class="topbar-subtitle">Clean Azure Maps baseline</div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <div class="panel-title">Controls</div>
+
+      <label>Map style</label>
+      <select id="styleSelect">
+        <option value="road">Road</option>
+        <option value="grayscale_light">Grayscale light</option>
+        <option value="grayscale_dark">Grayscale dark</option>
+        <option value="satellite">Satellite</option>
+        <option value="satellite_road_labels">Satellite + labels</option>
+      </select>
+
+      <button id="resetBtn">Reset view</button>
+
+      <pre id="debug">Ready.</pre>
+    </aside>
+
+    <section class="map-wrap">
+      <div id="map" class="map"></div>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

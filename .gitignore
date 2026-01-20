@@ -1,0 +1,8 @@
+# Local secrets
+web/config.js
+
+# Common
+node_modules/
+dist/
+.vscode/
+.DS_Store
