@@ -1,12 +1,19 @@
 import { createMap } from "./map/map-init.js";
 
 const debugEl = document.getElementById("debug");
+const overlayEl = document.getElementById("loadingOverlay");
+
 function debug(msg) {
+  if (!debugEl) return;
   debugEl.textContent = msg + "\n" + debugEl.textContent;
 }
 
+function hideLoading() {
+  if (overlayEl) overlayEl.classList.add("hidden");
+}
+
 async function main() {
-  debug("Starting...");
+  debug("Starting…");
 
   const map = await createMap({
     containerId: "map",
@@ -14,20 +21,17 @@ async function main() {
     style: "road"
   });
 
-  debug("Map initializing...");
-
-  map.events.add("ready", () => debug("Map ready."));
-  map.events.add("error", (e) => debug("MAP ERROR: " + JSON.stringify(e)));
-
-  document.getElementById("styleSelect").addEventListener("change", (e) => {
-    map.setStyle({ style: e.target.value });
+  map.events.add("ready", () => {
+    debug("Map ready.");
+    hideLoading();
   });
 
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    map.setCamera({ center: [-20, 25], zoom: 2 });
+  map.events.add("error", (e) => {
+    debug("Map error: " + JSON.stringify(e));
+    // Leave overlay up if you want, or hide and show error UI later.
   });
 }
 
 main().catch((e) => {
-  debug("Startup failed: " + (e && e.message ? e.message : String(e)));
+  debug("Startup failed: " + (e?.message || String(e)));
 });

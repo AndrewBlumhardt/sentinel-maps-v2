@@ -9,14 +9,11 @@
 
 async function getMapsConfig() {
   const resp = await fetch("/api/mapsConfig", { cache: "no-store" });
-  if (!resp.ok) {
-    throw new Error("Failed to load /api/mapsConfig. Status: " + resp.status);
-  }
+  if (!resp.ok) throw new Error("Failed to load /api/mapsConfig: " + resp.status);
   return await resp.json();
 }
 
 function addMapControls(map) {
-  // Bottom-right cluster: zoom + pitch.
   map.controls.add(
     [
       new atlas.control.ZoomControl(),
@@ -25,16 +22,29 @@ function addMapControls(map) {
     { position: "bottom-right" }
   );
 
-  // Bottom-left: compass (rotation).
   map.controls.add(new atlas.control.CompassControl(), { position: "bottom-left" });
 
-  // Top-right: style picker (acts like a “layer/style” selector).
-  map.controls.add(new atlas.control.StyleControl(), { position: "top-right" });
+  map.controls.add(
+    new atlas.control.FullscreenControl({ hideIfUnsupported: true }),
+    { position: "top-right" }
+  );
 
-  // Top-right: fullscreen toggle.
-  map.controls.add(new atlas.control.FullscreenControl({ hideIfUnsupported: true }), {
-    position: "top-right"
-  });
+  // Style picker (include satellite + labeled satellite)
+  // Note: satellite styles may require your Azure Maps pricing tier to support imagery. :contentReference[oaicite:4]{index=4}
+  map.controls.add(
+    new atlas.control.StyleControl({
+      mapStyles: [
+        "road",
+        "grayscale_light",
+        "grayscale_dark",
+        "night",
+        "road_shaded_relief",
+        "satellite",
+        "satellite_road_labels"
+      ]
+    }),
+    { position: "top-right" }
+  );
 }
 
 export async function createMap({ containerId, initialView, style }) {
@@ -52,8 +62,6 @@ export async function createMap({ containerId, initialView, style }) {
     }
   });
 
-  // Controls can be added immediately.
   addMapControls(map);
-
   return map;
 }

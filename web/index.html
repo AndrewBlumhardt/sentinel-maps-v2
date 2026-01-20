@@ -11,34 +11,20 @@
   <link rel="stylesheet" href="./styles/app.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-title">Sentinel Maps V2</div>
-    <div class="topbar-subtitle">Clean Azure Maps baseline</div>
-  </header>
+  <div id="app">
+    <!-- Loading overlay (hidden when map is ready) -->
+    <div id="loadingOverlay" class="loading-overlay" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-text">Loading map…</div>
+    </div>
 
-  <main class="layout">
-    <aside class="panel">
-      <div class="panel-title">Controls</div>
+    <!-- Map only -->
+    <div id="map" class="map-canvas"></div>
 
-      <label>Map style</label>
-      <select id="styleSelect">
-        <option value="road">Road</option>
-        <option value="grayscale_light">Grayscale light</option>
-        <option value="grayscale_dark">Grayscale dark</option>
-        <option value="satellite">Satellite</option>
-        <option value="satellite_road_labels">Satellite + labels</option>
-      </select>
+    <!-- Optional debug (remove later if you want) -->
+    <pre id="debug" class="debug-panel">Starting…</pre>
+  </div>
 
-      <button id="resetBtn">Reset view</button>
-
-      <pre id="debug">Ready.</pre>
-    </aside>
-
-    <section class="map-wrap">
-      <div id="map" class="map"></div>
-    </section>
-  </main>
-
-    <script type="module" src="./src/app.js"></script>
+  <script type="module" src="./src/app.js"></script>
 </body>
 </html>
