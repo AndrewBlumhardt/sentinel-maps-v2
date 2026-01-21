@@ -71,6 +71,12 @@ export async function toggleThreatActorsHeatmap(map, turnOn) {
 
 async function enable(map) {
   // 1) Load TSV
+
+  // If something from a previous toggle is still present, clean it up first.
+  // This prevents "already added" errors and handles partial-state situations.
+  if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
+  if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
+
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load /data/threat-actors.tsv");
 
