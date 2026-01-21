@@ -128,7 +128,7 @@ console.log(
 
   map.layers.add(heat);
 
-  // 5) Optional: show counts as labels on top (helps learning/validation)
+  /* 5) Optional: show counts as labels on top (helps learning/validation)
   const labels = new atlas.layer.SymbolLayer(ds, IDS.labelLayer, {
     iconOptions: {
       image: "none",
@@ -140,13 +140,13 @@ console.log(
       offset: [0, 0],
       size: 14
     }
-  });
+  }); */
 
   map.layers.add(labels);
 }
 
 function disable(map) {
-  if (map.layers.getLayerById(IDS.labelLayer)) map.layers.remove(IDS.labelLayer);
+  //if (map.layers.getLayerById(IDS.labelLayer)) map.layers.remove(IDS.labelLayer);
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
 }
