@@ -2,6 +2,17 @@ import { parseTSV } from "../data/tsv.js";
 
 /* global atlas */
 
+/*
+Threat Actor Heatmap Overlay (Country-level)
+
+User-facing overview:
+- We load the threat actor TSV file.
+- We count how many actors are associated with each country (Location column).
+- We place ONE point per country (at an approximate centroid).
+- We render those points using Azure Maps' native HeatMapLayer.
+  The heatmap uses the per-country count as the "weight" so higher counts appear hotter.
+*/
+
 // Minimal centroids so we can render without geocoding/boundary calls.
 // Expand over time (or later add Lat/Lon to TSV and bypass this).
 const COUNTRY_CENTROIDS = {
@@ -51,10 +62,11 @@ const COUNTRY_CENTROIDS = {
 
 const IDS = {
   source: "taByCountrySource",
-  heatLayer: "taHeatLayer",
-  labelLayer: "taCountLabelLayer"
+  heatLayer: "taHeatLayer"
 };
 
+// Module-level toggle state.
+// Note: this assumes only one map instance is using this overlay.
 let enabled = false;
 
 export async function toggleThreatActorsHeatmap(map, turnOn) {
@@ -70,89 +82,94 @@ export async function toggleThreatActorsHeatmap(map, turnOn) {
 }
 
 async function enable(map) {
-  // 1) Load TSV
-
-  // If something from a previous toggle is still present, clean it up first.
+  // Defensive cleanup:
+  // If something from a previous toggle is still present, remove it first.
   // This prevents "already added" errors and handles partial-state situations.
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
 
+  // 1) Load TSV data
+  // Use a relative path if you ever host under a subpath. For SWA with web as root, this is fine.
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load /data/threat-actors.tsv");
 
   const rows = parseTSV(await resp.text());
-  console.log("Sample row:", rows[0]);
 
-  // 2) Count by country
+  // 2) Count actors by country (Location column)
   const counts = new Map();
+
   for (const r of rows) {
-    const country = (r.Location || "").trim();
+    // Normalize whitespace and special spaces to avoid mismatches in TSV edits.
+    let country = (r.Location || "")
+      .replace(/\u00A0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
     if (!country) continue;
+
+    // Optional normalization for common US variants (safe even if not present).
+    if (country === "United States of America" || country === "USA" || country === "US" || country === "U.S.") {
+      country = "United States";
+    }
+
     counts.set(country, (counts.get(country) || 0) + 1);
   }
 
-  // DEBUG: verify expected countries are present
-console.log("Threat actor counts by country:", Array.from(counts.entries()));
-
-console.log(
-  "US check:",
-  "United States =", counts.get("United States"),
-  "| United States of America =", counts.get("United States of America")
-);
-
-  // 3) Build point features (one per country) with a weight property
+  // 3) Build point features (one per country) with a weight property.
+  // HeatMapLayer will use "weight" to determine how strongly each point influences the heatmap.
   const ds = new atlas.source.DataSource(IDS.source);
 
   for (const [country, count] of counts.entries()) {
     const coords = COUNTRY_CENTROIDS[country];
-    if (!coords) continue; // skip until you add centroid (or add Lat/Lon later)
+    if (!coords) continue; // if a country is missing, add its centroid above
 
-    ds.add(new atlas.data.Feature(
-      new atlas.data.Point(coords),
-      {
+    ds.add(
+      new atlas.data.Feature(new atlas.data.Point(coords), {
         country,
-        count,
-        // HeatMapLayer looks for a weight value; we’ll use count directly.
-        weight: count
-      }
-    ));
+        weight: count // aggregated actor count for this country
+      })
+    );
   }
 
   map.sources.add(ds);
 
-  // 4) Heatmap layer (native)
-  // Weighted heatmap uses a property to define intensity per point. :contentReference[oaicite:2]{index=2}
+  // 4) Heatmap layer (native Azure Maps)
+  //
+  // Why interpolate?
+  // - Heatmaps can "saturate" quickly (many different counts look the same).
+  // - We map raw counts into a 0–1 range using explicit stops so small values stay faint
+  //   while large values become clearly hotter.
   const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
-    // Use the count as the weight.
-    weight: ["get", "weight"],
+    weight: [
+      "interpolate",
+      ["linear"],
+      ["get", "weight"],
 
-    // These settings are intentionally conservative. You can tune later.
-    radius: 25,
-    intensity: 1,
+      // count -> normalized intensity
+      1, 0.10,
+      5, 0.20,
+      10, 0.30,
+      25, 0.50,
+      50, 0.70,
+      100, 0.85,
+      200, 1.00
+    ],
+
+    // Radius controls the size of each country's "blob" at low zoom levels.
+    radius: 35,
+
+    // Intensity increases overall heatmap strength. Keep modest to preserve contrast.
+    intensity: 1.2,
+
+    // Opacity controls how dominant the overlay is on top of the basemap.
     opacity: 0.75
   });
 
   map.layers.add(heat);
-
-  /* 5) Optional: show counts as labels on top (helps learning/validation)
-  const labels = new atlas.layer.SymbolLayer(ds, IDS.labelLayer, {
-    iconOptions: {
-      image: "none",
-      allowOverlap: true
-    },
-    textOptions: {
-      textField: ["to-string", ["get", "count"]],
-      allowOverlap: true,
-      offset: [0, 0],
-      size: 14
-    }
-  }); */
-
-  map.layers.add(labels);
 }
 
 function disable(map) {
-  //if (map.layers.getLayerById(IDS.labelLayer)) map.layers.remove(IDS.labelLayer);
+  // Remove the heat layer and source. This fully removes the overlay.
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
 }
