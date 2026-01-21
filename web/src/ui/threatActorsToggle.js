@@ -19,17 +19,30 @@ export function addThreatActorsToggle(map) {
   let on = false;
   const btn = wrap.querySelector("#taBtn");
 
-  btn.addEventListener("click", async () => {
-    try {
-      on = !on;
-      await toggleThreatActorsHeatmap(map, on);
-      btn.style.opacity = on ? "1" : "0.8";
-      console.log("Threat Actors toggled:", on);
-    } catch (e) {
-      console.error("Threat Actors toggle failed:", e);
-      alert("Threat Actors toggle failed. Check Console for details.");
-      on = false;
-      btn.style.opacity = "0.8";
-    }
-  });
+btn.addEventListener("click", async () => {
+  btn.disabled = true;
+
+  try {
+    on = !on;
+
+    // If toggleThreatActorsHeatmap throws, we will see it here.
+    await toggleThreatActorsHeatmap(map, on);
+
+    btn.style.opacity = on ? "1" : "0.8";
+    console.log("Threat Actors toggled:", on);
+  } catch (e) {
+    // Always log what we caught (some failures are not standard Error objects).
+    console.error("Threat Actors toggle failed (caught):", e);
+
+    // Only show an alert if we truly have an error-like object.
+    const msg = (e && (e.message || e.toString())) ? (e.message || e.toString()) : "";
+    if (msg) alert("Threat Actors toggle failed: " + msg);
+
+    // Reset UI state
+    on = false;
+    btn.style.opacity = "0.8";
+  } finally {
+    btn.disabled = false;
+  }
+});
 }
