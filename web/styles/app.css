@@ -54,7 +54,7 @@ body {
   font-size: 14px;
 }
 
-/* Optional debug panel */
+/* Optional debug panel 
 #debug {
   position: absolute;
   left: 12px;
@@ -69,7 +69,7 @@ body {
   color: #fff;
   font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   pointer-events: none;
-}
+} */
 
 @keyframes spin {
   to { transform: rotate(360deg); }

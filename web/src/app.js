@@ -1,4 +1,5 @@
 import { createMap } from "./map/map-init.js";
+import { addThreatActorsToggle } from "./ui/threatActorsToggle.js";
 
 const debugEl = document.getElementById("debug");
 const overlayEl = document.getElementById("loadingOverlay");
@@ -24,6 +25,7 @@ async function main() {
   map.events.add("ready", () => {
     debug("Map ready.");
     hideLoading();
+    addThreatActorsToggle(map);
   });
 
   map.events.add("error", (e) => {
