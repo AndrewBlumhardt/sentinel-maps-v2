@@ -6,6 +6,7 @@ export function addThreatActorsToggle(map) {
   wrap.style.top = "12px";
   wrap.style.left = "12px";
   wrap.style.zIndex = "5000";
+  wrap.style.pointerEvents = "auto";
 
   wrap.innerHTML = `
     <button id="taBtn" style="padding:6px 10px;border-radius:6px;border:none;background:#1f2937;color:#fff;cursor:pointer;">
@@ -16,9 +17,19 @@ export function addThreatActorsToggle(map) {
   document.body.appendChild(wrap);
 
   let on = false;
-  wrap.querySelector("#taBtn").addEventListener("click", async () => {
-    on = !on;
-    await toggleThreatActorsHeatmap(map, on);
-    wrap.querySelector("#taBtn").style.opacity = on ? "1" : "0.8";
+  const btn = wrap.querySelector("#taBtn");
+
+  btn.addEventListener("click", async () => {
+    try {
+      on = !on;
+      await toggleThreatActorsHeatmap(map, on);
+      btn.style.opacity = on ? "1" : "0.8";
+      console.log("Threat Actors toggled:", on);
+    } catch (e) {
+      console.error("Threat Actors toggle failed:", e);
+      alert("Threat Actors toggle failed. Check Console for details.");
+      on = false;
+      btn.style.opacity = "0.8";
+    }
   });
 }

@@ -55,6 +55,8 @@ export async function createMap({ containerId, initialView, style }) {
     zoom: (initialView && initialView.zoom) || 2,
     pitch: (initialView && initialView.pitch) || 0,
     bearing: (initialView && initialView.bearing) || 0,
+    language: "en-US",
+    view: "Auto",
     style: style || "road",
     authOptions: {
       authType: "subscriptionKey",
