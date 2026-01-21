@@ -75,6 +75,7 @@ async function enable(map) {
   if (!resp.ok) throw new Error("Could not load /data/threat-actors.tsv");
 
   const rows = parseTSV(await resp.text());
+  console.log("Sample row:", rows[0]);
 
   // 2) Count by country
   const counts = new Map();
