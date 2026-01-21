@@ -84,6 +84,15 @@ async function enable(map) {
     counts.set(country, (counts.get(country) || 0) + 1);
   }
 
+  // DEBUG: verify expected countries are present
+console.log("Threat actor counts by country:", Array.from(counts.entries()));
+
+console.log(
+  "US check:",
+  "United States =", counts.get("United States"),
+  "| United States of America =", counts.get("United States of America")
+);
+
   // 3) Build point features (one per country) with a weight property
   const ds = new atlas.source.DataSource(IDS.source);
 
