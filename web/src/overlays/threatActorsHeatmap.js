@@ -139,34 +139,31 @@ async function enable(map) {
   // - Heatmaps can "saturate" quickly (many different counts look the same).
   // - We map raw counts into a 0–1 range using explicit stops so small values stay faint
   //   while large values become clearly hotter.
-  const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
-    weight: [
-      "interpolate",
-      ["linear"],
-      ["get", "weight"],
+const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
+  // Stronger normalized mapping so the heatmap is visible at world zoom.
+  // This keeps 7 distinct from 200 but avoids the faint “blue fog” effect.
+  weight: [
+    "interpolate",
+    ["linear"],
+    ["get", "weight"],
+    1,   0.25,
+    5,   0.45,
+    10,  0.65,
+    25,  0.95,
+    50,  1.25,
+    100, 1.60,
+    200, 2.00
+  ],
 
-      // count -> normalized intensity
-      1, 0.10,
-      5, 0.20,
-      10, 0.30,
-      25, 0.50,
-      50, 0.70,
-      100, 0.85,
-      200, 1.00
-    ],
+  // Larger radius makes country blobs visible at low zoom.
+  radius: 45,
 
-    // Radius controls the size of each country's "blob" at low zoom levels.
-    radius: 35,
+  // Higher intensity amplifies the signal without changing your underlying counts.
+  intensity: 2.0,
 
-    // Intensity increases overall heatmap strength. Keep modest to preserve contrast.
-    intensity: 1.2,
-
-    // Opacity controls how dominant the overlay is on top of the basemap.
-    opacity: 0.75
-  });
-
-  map.layers.add(heat);
-}
+  // Slightly higher opacity makes it easier to see.
+  opacity: 0.85
+});
 
 function disable(map) {
   // Remove the heat layer and source. This fully removes the overlay.
