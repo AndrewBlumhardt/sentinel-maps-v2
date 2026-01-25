@@ -57,7 +57,58 @@ const COUNTRY_CENTROIDS = {
   "United States": [-98.6, 39.8],
   "Türkiye": [35.2, 39.0],
   "Gaza": [34.3, 31.35],
-  "Korea": [127.8, 36.5] // generic fallback (your dataset includes "Korea")
+  "Korea": [127.8, 36.5]
+};
+
+// ISO 3166-1 alpha-2 country codes for fetching boundaries
+const COUNTRY_ISO_CODES = {
+  "Russia": "RU",
+  "China": "CN",
+  "Iran": "IR",
+  "Iraq": "IQ",
+  "Lebanon": "LB",
+  "North Korea": "KP",
+  "Vietnam": "VN",
+  "Pakistan": "PK",
+  "India": "IN",
+  "Turkey": "TR",
+  "Türkiye": "TR",
+  "Italy": "IT",
+  "Belarus": "BY",
+  "Ukraine": "UA",
+  "Brazil": "BR",
+  "Mexico": "MX",
+  "Nigeria": "NG",
+  "Israel": "IL",
+  "United Arab Emirates": "AE",
+  "Austria": "AT",
+  "France": "FR",
+  "Spain": "ES",
+  "Tunisia": "TN",
+  "Algeria": "DZ",
+  "Saudi Arabia": "SA",
+  "Libya": "LY",
+  "Georgia": "GE",
+  "Armenia": "AM",
+  "Taiwan": "TW",
+  "Indonesia": "ID",
+  "Kazakhstan": "KZ",
+  "Syria": "SY",
+  "Venezuela": "VE",
+  "Philippines": "PH",
+  "Singapore": "SG",
+  "Romania": "RO",
+  "Uzbekistan": "UZ",
+  "Canada": "CA",
+  "United States of America": "US",
+  "United States": "US",
+  "Gaza": "PS",
+  "Korea": "KR",
+  "South Korea": "KR",
+  "Germany": "DE",
+  "Poland": "PL",
+  "United Kingdom": "GB",
+  "The Netherlands": "NL"
 };
 
 const IDS = {
@@ -126,89 +177,148 @@ async function enable(map, mode, onCountryClick) {
 
   countryData = { counts, actorsByCountry };
 
-  // Build point features
-  const ds = new atlas.source.DataSource(IDS.source);
-
-  for (const [country, count] of counts.entries()) {
-    const coords = COUNTRY_CENTROIDS[country];
-    if (!coords) continue;
-
-    ds.add(
-      new atlas.data.Feature(new atlas.data.Point(coords), {
-        country,
-        weight: count,
-        count,
-        actors: actorsByCountry.get(country)
-      })
-    );
-  }
-
-  map.sources.add(ds);
+  const maxCount = Math.max(...counts.values());
 
   if (mode === "country") {
-    // Country view with large styled bubbles + click interactions
-    const maxCount = Math.max(...counts.values());
+    // Country polygon view - fetch actual country boundaries
+    const polygonSource = new atlas.source.DataSource(IDS.source);
     
-    // Large bubble layer styled to represent countries with heatmap colors
-    const bubbleLayer = new atlas.layer.BubbleLayer(ds, IDS.polygonLayer, {
-      radius: [
+    // Fetch country boundaries for each country with threat actors
+    const boundaryPromises = [];
+    for (const [country, count] of counts.entries()) {
+      const isoCode = COUNTRY_ISO_CODES[country];
+      if (!isoCode) {
+        console.warn(`No ISO code for country: ${country}`);
+        continue;
+      }
+
+      // Fetch country boundary from Azure Maps Search API
+      const promise = fetch(
+        `https://atlas.microsoft.com/search/polygon?api-version=1.0&query=${encodeURIComponent(country)}&subscription-key=${map.authentication.getToken()}`
+      )
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && data.additionalData && data.additionalData.length > 0) {
+            const geometry = data.additionalData[0].geometryData;
+            if (geometry) {
+              // Create polygon feature with threat data
+              const feature = new atlas.data.Feature(geometry, {
+                country,
+                count,
+                normalizedCount: count / maxCount,
+                actors: actorsByCountry.get(country)
+              });
+              return feature;
+            }
+          }
+          return null;
+        })
+        .catch(err => {
+          console.warn(`Failed to fetch boundary for ${country}:`, err);
+          return null;
+        });
+
+      boundaryPromises.push(promise);
+    }
+
+    // Wait for all boundaries to load
+    const features = (await Promise.all(boundaryPromises)).filter(f => f !== null);
+    
+    if (features.length === 0) {
+      throw new Error("Could not load any country boundaries");
+    }
+
+    polygonSource.add(features);
+    map.sources.add(polygonSource);
+
+    // Create polygon layer with heatmap colors
+    const polygonLayer = new atlas.layer.PolygonLayer(polygonSource, IDS.polygonLayer, {
+      fillColor: [
         "interpolate",
         ["linear"],
-        ["get", "count"],
-        1, 60,
-        10, 80,
-        25, 100,
-        50, 130,
-        100, 160,
-        200, 200
-      ],
-      color: [
-        "interpolate",
-        ["linear"],
-        ["/", ["get", "count"], maxCount],
-        0,    "#FDE725",  // Yellow (low) - heatmap palette
+        ["get", "normalizedCount"],
+        0,    "#FDE725",  // Yellow (low)
         0.2,  "#FCB323",  // Orange
         0.4,  "#F76839",  // Red-orange  
         0.6,  "#DD342D",  // Red
         0.8,  "#A50F15",  // Dark red
         1.0,  "#67000D"   // Deep red (high)
       ],
-      opacity: 0.65,
+      fillOpacity: 0.65
+    });
+
+    // Outline layer for borders
+    const outlineLayer = new atlas.layer.LineLayer(polygonSource, IDS.outlineLayer, {
       strokeColor: [
         "interpolate",
         ["linear"],
-        ["/", ["get", "count"], maxCount],
+        ["get", "normalizedCount"],
         0,    "#FDE725",
         0.5,  "#F76839",
         1.0,  "#67000D"
       ],
-      strokeWidth: 3,
+      strokeWidth: 2,
       strokeOpacity: 0.9
     });
 
-    map.layers.add(bubbleLayer);
+    map.layers.add(polygonLayer);
+    map.layers.add(outlineLayer);
 
-    // Register click events after layer is added
+    // Add click handlers
     if (onCountryClick) {
       setTimeout(() => {
-        map.events.add("click", bubbleLayer, (e) => {
+        map.events.add("click", polygonLayer, (e) => {
           if (e.shapes && e.shapes.length > 0) {
             const props = e.shapes[0].getProperties();
             onCountryClick(props);
           }
         });
 
-        map.events.add("mousemove", bubbleLayer, () => {
+        map.events.add("mousemove", polygonLayer, () => {
           map.getCanvasContainer().style.cursor = "pointer";
         });
 
-        map.events.add("mouseleave", bubbleLayer, () => {
+        map.events.add("mouseleave", polygonLayer, () => {
           map.getCanvasContainer().style.cursor = "grab";
         });
       }, 100);
     }
   } else {
-    // Standard heatmap
+    // Heatmap mode - use point features
+    const ds = new atlas.source.DataSource(IDS.source);
+
+    for (const [country, count] of counts.entries()) {
+      const coords = COUNTRY_CENTROIDS[country];
+      if (!coords) continue;
+
+      ds.add(
+        new atlas.data.Feature(new atlas.data.Point(coords), {
+          country,
+          weight: count,
+          count,
+          actors: actorsByCountry.get(country)
+        })
+      );
+    }
+
+    map.sources.add(ds);
+    // Standard heatmap with point-based data source
+    const ds = new atlas.source.DataSource(IDS.source);
+    
+    // Create point features at country centroids
+    for (const [country, count] of counts.entries()) {
+      const centroid = COUNTRY_CENTROIDS[country];
+      if (!centroid) {
+        console.warn(`No centroid defined for country: ${country}`);
+        continue;
+      }
+      
+      const weight = Math.max(1, count * 2);
+      ds.add(new atlas.data.Point(centroid, { weight, country, count }));
+    }
+    
+    map.sources.add(ds);
+
     const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
       weight: [
         "interpolate",
