@@ -75,3 +75,96 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* App Shell with flexbox layout */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Left panel for threat details */
+.left-panel {
+  flex: 0 0 400px;
+  background: rgba(31, 41, 55, 0.95);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.left-panel.hidden {
+  transform: translateX(-100%);
+}
+
+.panel-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.panel-header button {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.panel-header button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.panel-meta {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+}
+
+.panel-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.panel-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.panel-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Map host takes remaining space */
+.map-host {
+  flex: 1;
+  position: relative;
+}
+
+.map-host #map {
+  width: 100%;
+  height: 100%;
+}

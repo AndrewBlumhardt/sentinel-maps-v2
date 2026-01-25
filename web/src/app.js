@@ -1,5 +1,7 @@
 import { createMap } from "./map/map-init.js";
 import { addThreatActorsToggle } from "./ui/threatActorsToggle.js";
+import { addChoroplethToggle } from "./ui/choroplethToggle.js";
+import { showCountryDetails, initPanelControls } from "./ui/panelManager.js";
 
 const debugEl = document.getElementById("debug");
 const overlayEl = document.getElementById("loadingOverlay");
@@ -25,7 +27,16 @@ async function main() {
   map.events.add("ready", () => {
     debug("Map ready.");
     hideLoading();
+    
+    // Initialize panel controls
+    initPanelControls();
+    
+    // Add map overlays with click handlers
     addThreatActorsToggle(map);
+    addChoroplethToggle(map, (countryProps) => {
+      // Handle country click - show details in left panel
+      showCountryDetails(countryProps);
+    });
   });
 
   map.events.add("error", (e) => {

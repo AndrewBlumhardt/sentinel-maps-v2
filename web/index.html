@@ -11,20 +11,35 @@
   <link rel="stylesheet" href="./styles/app.css" />
 </head>
 <body>
-  <div id="app">
-    <!-- Loading overlay (hidden when map is ready) -->
-    <div id="loadingOverlay" class="loading-overlay" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <div class="loading-text">Loading map…</div>
-    </div>
+  <!--
+    App Shell
+    This layout uses flexbox so the left panel takes real width.
+    The map resizes when the panel opens or closes.
+  -->
+  <div id="appShell" class="app-shell">
 
-    <!-- Map only -->
-    <div id="map" class="map-canvas"></div>
+    <!-- Left threat details panel (hidden by default) -->
+    <aside id="leftPanel" class="left-panel hidden" aria-hidden="true">
+      <div class="panel-header">
+        <h2 id="panelTitle">Threat Details</h2>
+        <button id="panelHideBtn" type="button">Hide</button>
+      </div>
 
-    <!-- Optional debug (remove later if you want) -->
-    <pre id="debug" class="debug-panel">Starting…</pre>
+      <!-- Context about the selected region -->
+      <div id="panelMeta" class="panel-meta"></div>
+
+      <!-- List of matching threat actors -->
+      <div id="panelList" class="panel-list"></div>
+    </aside>
+
+    <!-- Map container -->
+    <main id="mapHost" class="map-host">
+      <div id="map"></div>
+    </main>
+
   </div>
 
+  <!-- App entry point -->
   <script type="module" src="./src/app.js"></script>
 </body>
 </html>
