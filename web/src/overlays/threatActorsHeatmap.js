@@ -284,28 +284,9 @@ async function enable(map, mode, onCountryClick) {
       }, 100);
     }
   } else {
-    // Heatmap mode - use point features
-    const ds = new atlas.source.DataSource(IDS.source);
-
-    for (const [country, count] of counts.entries()) {
-      const coords = COUNTRY_CENTROIDS[country];
-      if (!coords) continue;
-
-      ds.add(
-        new atlas.data.Feature(new atlas.data.Point(coords), {
-          country,
-          weight: count,
-          count,
-          actors: actorsByCountry.get(country)
-        })
-      );
-    }
-
-    map.sources.add(ds);
-    // Standard heatmap with point-based data source
+    // Heatmap mode - use point features at country centroids
     const ds = new atlas.source.DataSource(IDS.source);
     
-    // Create point features at country centroids
     for (const [country, count] of counts.entries()) {
       const centroid = COUNTRY_CENTROIDS[country];
       if (!centroid) {
@@ -314,7 +295,14 @@ async function enable(map, mode, onCountryClick) {
       }
       
       const weight = Math.max(1, count * 2);
-      ds.add(new atlas.data.Point(centroid, { weight, country, count }));
+      ds.add(
+        new atlas.data.Feature(new atlas.data.Point(centroid), {
+          weight,
+          country,
+          count,
+          actors: actorsByCountry.get(country)
+        })
+      );
     }
     
     map.sources.add(ds);
