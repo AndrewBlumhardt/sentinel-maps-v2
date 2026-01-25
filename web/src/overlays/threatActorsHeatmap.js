@@ -63,7 +63,8 @@ const COUNTRY_CENTROIDS = {
 const IDS = {
   source: "taByCountrySource",
   heatLayer: "taHeatLayer",
-  bubbleLayer: "taCountryBubbleLayer"
+  polygonLayer: "taCountryPolygonLayer",
+  outlineLayer: "taCountryOutlineLayer"
 };
 
 let enabled = false;
@@ -88,7 +89,8 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
 
 async function enable(map, mode, onCountryClick) {
   // Defensive cleanup
-  if (map.layers.getLayerById(IDS.bubbleLayer)) map.layers.remove(IDS.bubbleLayer);
+  if (map.layers.getLayerById(IDS.outlineLayer)) map.layers.remove(IDS.outlineLayer);
+  if (map.layers.getLayerById(IDS.polygonLayer)) map.layers.remove(IDS.polygonLayer);
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
 
@@ -144,54 +146,66 @@ async function enable(map, mode, onCountryClick) {
   map.sources.add(ds);
 
   if (mode === "country") {
-    // Country bubble view with click interactions
+    // Country view with large styled bubbles + click interactions
     const maxCount = Math.max(...counts.values());
     
-    const bubbleLayer = new atlas.layer.BubbleLayer(ds, IDS.bubbleLayer, {
+    // Large bubble layer styled to represent countries with heatmap colors
+    const bubbleLayer = new atlas.layer.BubbleLayer(ds, IDS.polygonLayer, {
       radius: [
         "interpolate",
         ["linear"],
         ["get", "count"],
-        1, 15,
-        10, 25,
-        25, 35,
-        50, 45,
-        100, 55,
-        200, 65
+        1, 60,
+        10, 80,
+        25, 100,
+        50, 130,
+        100, 160,
+        200, 200
       ],
       color: [
         "interpolate",
         ["linear"],
         ["/", ["get", "count"], maxCount],
-        0,    "#FFF4B3",
-        0.2,  "#FFAD4D",
-        0.4,  "#FF6B4D",
-        0.6,  "#E63B32",
-        0.8,  "#B30026",
-        1.0,  "#800026"
+        0,    "#FDE725",  // Yellow (low) - heatmap palette
+        0.2,  "#FCB323",  // Orange
+        0.4,  "#F76839",  // Red-orange  
+        0.6,  "#DD342D",  // Red
+        0.8,  "#A50F15",  // Dark red
+        1.0,  "#67000D"   // Deep red (high)
       ],
-      opacity: 0.75,
-      strokeColor: "rgba(255, 255, 255, 0.8)",
-      strokeWidth: 2
+      opacity: 0.65,
+      strokeColor: [
+        "interpolate",
+        ["linear"],
+        ["/", ["get", "count"], maxCount],
+        0,    "#FDE725",
+        0.5,  "#F76839",
+        1.0,  "#67000D"
+      ],
+      strokeWidth: 3,
+      strokeOpacity: 0.9
     });
 
     map.layers.add(bubbleLayer);
 
+    // Register click events after layer is added
     if (onCountryClick) {
-      map.events.add("click", IDS.bubbleLayer, (e) => {
-        if (e.shapes && e.shapes.length > 0) {
-          const props = e.shapes[0].getProperties();
-          onCountryClick(props);
-        }
-      });
+      setTimeout(() => {
+        map.events.add("click", bubbleLayer, (e) => {
+          if (e.shapes && e.shapes.length > 0) {
+            const props = e.shapes[0].getProperties();
+            onCountryClick(props);
+          }
+        });
 
-      map.events.add("mousemove", IDS.bubbleLayer, () => {
-        map.getCanvasContainer().style.cursor = "pointer";
-      });
+        map.events.add("mousemove", bubbleLayer, () => {
+          map.getCanvasContainer().style.cursor = "pointer";
+        });
 
-      map.events.add("mouseleave", IDS.bubbleLayer, () => {
-        map.getCanvasContainer().style.cursor = "grab";
-      });
+        map.events.add("mouseleave", bubbleLayer, () => {
+          map.getCanvasContainer().style.cursor = "grab";
+        });
+      }, 100);
     }
   } else {
     // Standard heatmap
@@ -217,8 +231,11 @@ async function enable(map, mode, onCountryClick) {
   }
 }
 
+
 function disable(map) {
-  // Remove the heat layer and source. This fully removes the overlay.
+  if (map.layers.getLayerById(IDS.outlineLayer)) map.layers.remove(IDS.outlineLayer);
+  if (map.layers.getLayerById(IDS.polygonLayer)) map.layers.remove(IDS.polygonLayer);
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
+  map.getCanvasContainer().style.cursor = 'grab';
 }

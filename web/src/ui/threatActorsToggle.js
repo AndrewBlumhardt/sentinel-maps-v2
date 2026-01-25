@@ -15,6 +15,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
   wrap.style.backdropFilter = "blur(10px)";
 
   wrap.innerHTML = `
+    <label style="color:#fff;font-size:13px;font-weight:500;padding:0 8px;">Threat Map</label>
     <button id="taToggle" style="padding:6px 10px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">Off</button>
     <select id="taMode" style="padding:6px 8px;border-radius:6px;border:none;background:#374151;color:#fff;cursor:pointer;font-size:13px;" disabled>
       <option value="heatmap">Heatmap</option>
