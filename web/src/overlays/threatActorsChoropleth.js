@@ -3,11 +3,61 @@ import { parseTSV } from "../data/tsv.js";
 /* global atlas */
 
 /*
-Threat Actor Choropleth Overlay (Country-level polygons)
+Threat Actor Country Overlay
 
-This overlay colors entire countries based on threat actor counts.
-Uses Azure Maps Data Service to fetch country boundaries dynamically.
+This overlay shows colored circles at country centroids sized by threat actor counts.
+Clicking a circle opens the detail panel.
 */
+
+const COUNTRY_CENTROIDS = {
+  "Russia": [100.0, 60.0],
+  "China": [104.0, 35.0],
+  "Iran": [53.0, 32.0],
+  "Iraq": [43.7, 33.2],
+  "Lebanon": [35.9, 33.9],
+  "North Korea": [127.5, 40.3],
+  "Vietnam": [108.3, 14.1],
+  "Pakistan": [69.3, 30.4],
+  "India": [78.9, 20.6],
+  "Turkey": [35.2, 39.0],
+  "Türkiye": [35.2, 39.0],
+  "Italy": [12.6, 41.9],
+  "Belarus": [27.9, 53.7],
+  "Ukraine": [31.2, 48.4],
+  "Brazil": [-51.9, -14.2],
+  "Mexico": [-102.6, 23.6],
+  "Nigeria": [8.7, 9.1],
+  "Israel": [34.9, 31.0],
+  "United Arab Emirates": [54.3, 24.3],
+  "Austria": [14.6, 47.5],
+  "France": [2.2, 46.2],
+  "Spain": [-3.7, 40.4],
+  "Tunisia": [9.5, 33.9],
+  "Algeria": [2.6, 28.0],
+  "Saudi Arabia": [45.1, 24.0],
+  "Libya": [17.2, 26.3],
+  "Georgia": [43.4, 42.3],
+  "Armenia": [45.0, 40.1],
+  "Taiwan": [121.0, 23.7],
+  "Indonesia": [113.9, -0.8],
+  "Kazakhstan": [66.9, 48.0],
+  "Syria": [38.5, 35.0],
+  "Venezuela": [-66.6, 6.4],
+  "Philippines": [122.0, 12.9],
+  "Singapore": [103.8, 1.35],
+  "Romania": [25.0, 45.9],
+  "Uzbekistan": [64.6, 41.4],
+  "Canada": [-106.3, 56.1],
+  "United States of America": [-98.6, 39.8],
+  "United States": [-98.6, 39.8],
+  "Gaza": [34.3, 31.35],
+  "Korea": [127.8, 36.5],
+  "South Korea": [127.8, 36.5],
+  "Germany": [10.5, 51.2],
+  "The Netherlands": [5.3, 52.1],
+  "United Kingdom": [-3.4, 55.4],
+  "Poland": [19.1, 51.9]
+};
 
 const COUNTRY_ISO_MAP = {
   "Russia": "RUS",
