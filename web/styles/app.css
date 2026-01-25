@@ -85,15 +85,16 @@ body {
 
 /* Left panel for threat details */
 .left-panel {
-  flex: 0 0 400px;
-  background: rgba(31, 41, 55, 0.95);
-  backdrop-filter: blur(10px);
+  flex: 0 0 360px;
+  background: rgba(17, 24, 39, 0.96);
+  backdrop-filter: blur(12px);
   color: #fff;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.3s ease;
+  border-right: 1px solid rgba(59, 130, 246, 0.2);
+  transition: transform 0.25s ease;
   z-index: 1000;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
 .left-panel.hidden {
@@ -101,39 +102,44 @@ body {
 }
 
 .panel-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
+  color: #60a5fa;
 }
 
 .panel-header button {
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 6px;
-  color: #fff;
+  padding: 5px 12px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 5px;
+  color: #60a5fa;
   cursor: pointer;
-  font-size: 13px;
-  transition: background 0.2s;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .panel-header button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .panel-meta {
-  padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.2);
+  padding: 14px 20px;
+  background: rgba(0, 0, 0, 0.25);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 14px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .panel-list {
@@ -142,20 +148,20 @@ body {
 }
 
 .panel-list::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .panel-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .panel-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 3px;
 }
 
 .panel-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(59, 130, 246, 0.5);
 }
 
 /* Map host takes remaining space */

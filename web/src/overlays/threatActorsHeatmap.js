@@ -62,44 +62,47 @@ const COUNTRY_CENTROIDS = {
 
 const IDS = {
   source: "taByCountrySource",
-  heatLayer: "taHeatLayer"
+  heatLayer: "taHeatLayer",
+  bubbleLayer: "taCountryBubbleLayer"
 };
 
-// Module-level toggle state.
-// Note: this assumes only one map instance is using this overlay.
 let enabled = false;
+let currentMode = null;
+let countryData = null;
 
-export async function toggleThreatActorsHeatmap(map, turnOn) {
+export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = null) {
+  const mode = onCountryClick ? "country" : "heatmap";
+  
   if (turnOn) {
-    if (enabled) return;
-    await enable(map);
+    if (enabled && currentMode === mode) return;
+    await enable(map, mode, onCountryClick);
     enabled = true;
+    currentMode = mode;
   } else {
     if (!enabled) return;
     disable(map);
     enabled = false;
+    currentMode = null;
   }
 }
 
-async function enable(map) {
-  // Defensive cleanup:
-  // If something from a previous toggle is still present, remove it first.
-  // This prevents "already added" errors and handles partial-state situations.
+async function enable(map, mode, onCountryClick) {
+  // Defensive cleanup
+  if (map.layers.getLayerById(IDS.bubbleLayer)) map.layers.remove(IDS.bubbleLayer);
   if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
   if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
 
-  // 1) Load TSV data
-  // Use a relative path if you ever host under a subpath. For SWA with web as root, this is fine.
+  // Load TSV data
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load /data/threat-actors.tsv");
 
   const rows = parseTSV(await resp.text());
 
-  // 2) Count actors by country (Location column)
+  // Count actors by country
   const counts = new Map();
+  const actorsByCountry = new Map();
 
   for (const r of rows) {
-    // Normalize whitespace and special spaces to avoid mismatches in TSV edits.
     let country = (r.Location || "")
       .replace(/\u00A0/g, " ")
       .replace(/\s+/g, " ")
@@ -107,65 +110,111 @@ async function enable(map) {
 
     if (!country) continue;
 
-    // Optional normalization for common US variants (safe even if not present).
     if (country === "United States of America" || country === "USA" || country === "US" || country === "U.S.") {
       country = "United States";
     }
 
     counts.set(country, (counts.get(country) || 0) + 1);
+    
+    if (!actorsByCountry.has(country)) {
+      actorsByCountry.set(country, []);
+    }
+    actorsByCountry.get(country).push(r);
   }
 
-  // 3) Build point features (one per country) with a weight property.
-  // HeatMapLayer will use "weight" to determine how strongly each point influences the heatmap.
+  countryData = { counts, actorsByCountry };
+
+  // Build point features
   const ds = new atlas.source.DataSource(IDS.source);
 
   for (const [country, count] of counts.entries()) {
     const coords = COUNTRY_CENTROIDS[country];
-    if (!coords) continue; // if a country is missing, add its centroid above
+    if (!coords) continue;
 
     ds.add(
       new atlas.data.Feature(new atlas.data.Point(coords), {
         country,
-        weight: count // aggregated actor count for this country
+        weight: count,
+        count,
+        actors: actorsByCountry.get(country)
       })
     );
   }
 
   map.sources.add(ds);
 
-  // 4) Heatmap layer (native Azure Maps)
-  //
-  // Why interpolate?
-  // - Heatmaps can "saturate" quickly (many different counts look the same).
-  // - We map raw counts into a 0–1 range using explicit stops so small values stay faint
-  //   while large values become clearly hotter.
-  const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
-    weight: [
-      "interpolate",
-      ["linear"],
-      ["get", "weight"],
+  if (mode === "country") {
+    // Country bubble view with click interactions
+    const maxCount = Math.max(...counts.values());
+    
+    const bubbleLayer = new atlas.layer.BubbleLayer(ds, IDS.bubbleLayer, {
+      radius: [
+        "interpolate",
+        ["linear"],
+        ["get", "count"],
+        1, 15,
+        10, 25,
+        25, 35,
+        50, 45,
+        100, 55,
+        200, 65
+      ],
+      color: [
+        "interpolate",
+        ["linear"],
+        ["/", ["get", "count"], maxCount],
+        0,    "#FFF4B3",
+        0.2,  "#FFAD4D",
+        0.4,  "#FF6B4D",
+        0.6,  "#E63B32",
+        0.8,  "#B30026",
+        1.0,  "#800026"
+      ],
+      opacity: 0.75,
+      strokeColor: "rgba(255, 255, 255, 0.8)",
+      strokeWidth: 2
+    });
 
-      // count -> normalized intensity
-          1,   0.25,
-          5,   0.45,
-          10,  0.65,
-          25,  0.95,
-          50,  1.25,
-          100, 1.60,
-          200, 2.00
-    ],
+    map.layers.add(bubbleLayer);
 
-    // Radius controls the size of each country's "blob" at low zoom levels.
-    radius: 45,
+    if (onCountryClick) {
+      map.events.add("click", IDS.bubbleLayer, (e) => {
+        if (e.shapes && e.shapes.length > 0) {
+          const props = e.shapes[0].getProperties();
+          onCountryClick(props);
+        }
+      });
 
-    // Intensity increases overall heatmap strength. Keep modest to preserve contrast.
-    intensity: 2,
+      map.events.add("mousemove", IDS.bubbleLayer, () => {
+        map.getCanvasContainer().style.cursor = "pointer";
+      });
 
-    // Opacity controls how dominant the overlay is on top of the basemap.
-    opacity: 0.85
-  });
+      map.events.add("mouseleave", IDS.bubbleLayer, () => {
+        map.getCanvasContainer().style.cursor = "grab";
+      });
+    }
+  } else {
+    // Standard heatmap
+    const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
+      weight: [
+        "interpolate",
+        ["linear"],
+        ["get", "weight"],
+        1,   0.25,
+        5,   0.45,
+        10,  0.65,
+        25,  0.95,
+        50,  1.25,
+        100, 1.60,
+        200, 2.00
+      ],
+      radius: 45,
+      intensity: 2,
+      opacity: 0.85
+    });
 
-  map.layers.add(heat);
+    map.layers.add(heat);
+  }
 }
 
 function disable(map) {
