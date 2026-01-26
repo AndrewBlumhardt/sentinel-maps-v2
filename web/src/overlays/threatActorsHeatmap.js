@@ -347,20 +347,19 @@ async function enable(map, mode, onCountryClick) {
       return;
     }
 
-    // Create polygon fill layer with heatmap-style color gradient
+    // Create polygon fill layer with standard heatmap color gradient (matches Azure Maps default)
     const polygonLayer = new atlas.layer.PolygonLayer(dataSource, IDS.polygonLayer, {
       fillColor: [
         "interpolate",
         ["linear"],
         ["get", "normalizedCount"],
-        0,    "#FDE725",  // Yellow (low)
-        0.2,  "#FCB323",  // Orange
-        0.4,  "#F76839",  // Red-orange  
-        0.6,  "#DD342D",  // Red
-        0.8,  "#A50F15",  // Dark red
-        1.0,  "#67000D"   // Deep red (high)
+        0,    "#00f",  // Blue (low)
+        0.25, "#0ff",  // Cyan
+        0.5,  "#0f0",  // Green
+        0.75, "#ff0",  // Yellow
+        1.0,  "#f00"   // Red (high)
       ],
-      fillOpacity: 0.65
+      fillOpacity: 0.6
     });
 
     // Outline layer for country borders with matching colors
@@ -369,12 +368,12 @@ async function enable(map, mode, onCountryClick) {
         "interpolate",
         ["linear"],
         ["get", "normalizedCount"],
-        0,    "#FDE725",
-        0.5,  "#F76839",
-        1.0,  "#67000D"
+        0,    "#00f",  // Blue (low)
+        0.5,  "#0f0",  // Green
+        1.0,  "#f00"   // Red (high)
       ],
       strokeWidth: 2,
-      strokeOpacity: 0.9
+      strokeOpacity: 0.8
     });
 
     map.layers.add(polygonLayer);
