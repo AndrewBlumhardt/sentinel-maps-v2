@@ -118,15 +118,18 @@ body {
 }
 
 .panel-header button {
-  padding: 5px 12px;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 5px;
-  color: #60a5fa;
+  padding: 6px 14px;
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  border-radius: 6px;
+  color: #f87171;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .panel-header button:hover {
