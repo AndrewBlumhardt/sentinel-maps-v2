@@ -192,6 +192,15 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
 async function enable(map, mode, onCountryClick) {
   // Defensive cleanup - remove all layers and sources
   disable(map);
+  
+  // Ensure source is fully removed (defensive double-check)
+  if (map.sources.getById(IDS.source)) {
+    try {
+      map.sources.remove(IDS.source);
+    } catch (e) {
+      console.warn('Failed to remove existing source:', e);
+    }
+  }
 
   // Load TSV data
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
@@ -266,8 +275,14 @@ async function enable(map, mode, onCountryClick) {
       return;
     }
 
-    polygonSource.add(features);
-    map.sources.add(polygonSource);
+    // Final check before adding source
+    if (!map.sources.getById(IDS.source)) {
+      polygonSource.add(features);
+      map.sources.add(polygonSource);
+    } else {
+      console.error('Source still exists after cleanup - skipping add');
+      return;
+    }
     polygonSource.add(features);
     map.sources.add(polygonSource);
 
