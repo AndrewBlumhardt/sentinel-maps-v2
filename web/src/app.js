@@ -1,6 +1,7 @@
 import { createMap } from "./map/map-init.js";
 import { addThreatActorsToggle } from "./ui/threatActorsToggle.js";
 import { showCountryDetails, initPanelControls } from "./ui/panelManager.js";
+import { addAutoScrollControl } from "./ui/autoScroll.js";
 
 const debugEl = document.getElementById("debug");
 const overlayEl = document.getElementById("loadingOverlay");
@@ -31,6 +32,7 @@ async function main() {
     addThreatActorsToggle(map, (countryProps) => {
       showCountryDetails(countryProps);
     });
+    addAutoScrollControl(map);
   });
 
   map.events.add("error", (e) => {
