@@ -200,19 +200,27 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
 }
 
 async function enable(map, mode, onCountryClick) {
-  // Defensive cleanup - remove all layers and sources
-  disable(map);
-  
-  // Ensure source is fully removed (defensive double-check)
-  if (map.sources.getById(IDS.source)) {
-    try {
-      map.sources.remove(IDS.source);
-    } catch (e) {
-      console.warn('Failed to remove existing source:', e);
-    }
+  // Remove existing layers (but keep source to reuse)
+  try {
+    if (map.layers.getLayerById(IDS.outlineLayer)) map.layers.remove(IDS.outlineLayer);
+    if (map.layers.getLayerById(IDS.polygonLayer)) map.layers.remove(IDS.polygonLayer);
+    if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
+  } catch (e) {
+    console.warn('Error removing layers:', e);
   }
 
-  // Load TSV data
+  // Get or create data source (reuse if exists to avoid "already added" error)
+  let dataSource = map.sources.getById(IDS.source);
+  if (dataSource) {
+    // Clear existing data from source
+    dataSource.clear();
+  } else {
+    // Create new source and add to map
+    dataSource = new atlas.source.DataSource(IDS.source);
+    map.sources.add(dataSource);
+  }
+
+  // Load threat actor data from TSV file
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load /data/threat-actors.tsv");
 
@@ -247,11 +255,10 @@ async function enable(map, mode, onCountryClick) {
   const maxCount = Math.max(...counts.values());
 
   if (mode === "country") {
-    // Country polygon view - use local bounding boxes
-    const polygonSource = new atlas.source.DataSource(IDS.source);
-    
-    // Create polygon features from local bounding box data
+    // Country polygon view - use local bounding boxes to render country shapes
     const features = [];
+    
+    // Build polygon features for each country with threat actors
     for (const [country, count] of counts.entries()) {
       const bounds = COUNTRY_BOUNDS[country];
       if (!bounds) {
@@ -261,7 +268,7 @@ async function enable(map, mode, onCountryClick) {
 
       const [minLon, minLat, maxLon, maxLat] = bounds;
       
-      // Create a bounding box polygon
+      // Create rectangular bounding box polygon for the country
       const polygon = new atlas.data.Polygon([[
         [minLon, maxLat],  // Top-left
         [maxLon, maxLat],  // Top-right
@@ -270,6 +277,7 @@ async function enable(map, mode, onCountryClick) {
         [minLon, maxLat]   // Close polygon
       ]]);
       
+      // Attach threat actor metadata to the feature
       const feature = new atlas.data.Feature(polygon, {
         country,
         count,
@@ -285,14 +293,8 @@ async function enable(map, mode, onCountryClick) {
       return;
     }
 
-    // Final check before adding source
-    if (!map.sources.getById(IDS.source)) {
-      polygonSource.add(features);
-      map.sources.add(polygonSource);
-    } else {
-      console.error('Source still exists after cleanup - skipping add');
-      return;
-    }
+    // Add features to the reused data source
+    dataSource.add(features);
     polygonSource.add(features);
     map.sources.add(polygonSource);
 
@@ -312,8 +314,8 @@ async function enable(map, mode, onCountryClick) {
       fillOpacity: 0.65
     });
 
-    // Outline layer for borders
-    const outlineLayer = new atlas.layer.LineLayer(polygonSource, IDS.outlineLayer, {
+    // Outline layer for country borders with matching colors
+    const outlineLayer = new atlas.layer.LineLayer(dataSource, IDS.outlineLayer, {
       strokeColor: [
         "interpolate",
         ["linear"],
@@ -329,9 +331,11 @@ async function enable(map, mode, onCountryClick) {
     map.layers.add(polygonLayer);
     map.layers.add(outlineLayer);
 
-    // Add click handlers
+    // Register mouse interactions (click to show details, hover for pointer cursor)
     if (onCountryClick) {
+      // Delay ensures layers are fully registered before adding event listeners
       setTimeout(() => {
+        // Handle clicks on countries to show threat actor details
         map.events.add("click", polygonLayer, (e) => {
           if (e.shapes && e.shapes.length > 0) {
             const props = e.shapes[0].getProperties();
@@ -339,19 +343,19 @@ async function enable(map, mode, onCountryClick) {
           }
         });
 
+        // Change cursor to pointer when hovering over countries
         map.events.add("mousemove", polygonLayer, () => {
           map.getCanvasContainer().style.cursor = "pointer";
         });
 
+        // Restore default cursor when leaving country areas
         map.events.add("mouseleave", polygonLayer, () => {
           map.getCanvasContainer().style.cursor = "grab";
         });
       }, 100);
     }
   } else {
-    // Heatmap mode - use point features at country centroids
-    const ds = new atlas.source.DataSource(IDS.source);
-    
+    // Heatmap mode - use point features at country centroids for diffuse intensity visualization
     for (const [country, count] of counts.entries()) {
       const centroid = COUNTRY_CENTROIDS[country];
       if (!centroid) {
@@ -359,8 +363,9 @@ async function enable(map, mode, onCountryClick) {
         continue;
       }
       
+      // Weight determines the intensity at this point
       const weight = Math.max(1, count * 2);
-      ds.add(
+      dataSource.add(
         new atlas.data.Feature(new atlas.data.Point(centroid), {
           weight,
           country,
@@ -369,10 +374,9 @@ async function enable(map, mode, onCountryClick) {
         })
       );
     }
-    
-    map.sources.add(ds);
 
-    const heat = new atlas.layer.HeatMapLayer(ds, IDS.heatLayer, {
+    // Create heatmap layer with intensity based on threat actor count
+    const heat = new atlas.layer.HeatMapLayer(dataSource, IDS.heatLayer, {
       weight: [
         "interpolate",
         ["linear"],
