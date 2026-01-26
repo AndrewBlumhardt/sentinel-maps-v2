@@ -255,46 +255,97 @@ async function enable(map, mode, onCountryClick) {
   const maxCount = Math.max(...counts.values());
 
   if (mode === "country") {
-    // Country polygon view - use local bounding boxes to render country shapes
-    const features = [];
-    
-    // Build polygon features for each country with threat actors
-    for (const [country, count] of counts.entries()) {
-      const bounds = COUNTRY_BOUNDS[country];
-      if (!bounds) {
-        console.warn(`No bounding box for country: ${country}`);
-        continue;
-      }
-
-      const [minLon, minLat, maxLon, maxLat] = bounds;
+    // Country polygon view - fetch actual country boundaries from GeoJSON
+    try {
+      // Fetch world countries GeoJSON from reliable CDN source
+      const geoResponse = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+      if (!geoResponse.ok) throw new Error('Failed to load country boundaries');
       
-      // Create rectangular bounding box polygon for the country
-      const polygon = new atlas.data.Polygon([[
-        [minLon, maxLat],  // Top-left
-        [maxLon, maxLat],  // Top-right
-        [maxLon, minLat],  // Bottom-right
-        [minLon, minLat],  // Bottom-left
-        [minLon, maxLat]   // Close polygon
-      ]]);
+      const topoData = await geoResponse.json();
       
-      // Attach threat actor metadata to the feature
-      const feature = new atlas.data.Feature(polygon, {
-        country,
-        count,
-        normalizedCount: count / maxCount,
-        actors: actorsByCountry.get(country)
+      // Convert TopoJSON to GeoJSON using Atlas built-in support
+      // TopoJSON is more compact, we need to convert it
+      const geoJsonResponse = await fetch('https://unpkg.com/world-atlas@2/countries-50m.json');
+      const worldData = await geoJsonResponse.json();
+      
+      // Simple approach: Use a lightweight GeoJSON directly
+      const countriesResponse = await fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson');
+      const countriesGeoJSON = await countriesResponse.json();
+      
+      // Build lookup map of country names to their GeoJSON features
+      const countryGeometries = new Map();
+      countriesGeoJSON.features.forEach(feature => {
+        const name = feature.properties.ADMIN || feature.properties.name;
+        if (name) {
+          countryGeometries.set(name, feature.geometry);
+        }
       });
       
-      features.push(feature);
-    }
-    
-    if (features.length === 0) {
-      console.error("Could not create any country boundaries");
+      // Create features for countries with threat actors
+      const features = [];
+      for (const [country, count] of counts.entries()) {
+        // Try to find matching geometry
+        let geometry = countryGeometries.get(country);
+        
+        // Try common name variations if direct match fails
+        if (!geometry) {
+          const variations = [
+            country.replace('United States of America', 'United States'),
+            country.replace('United States', 'United States of America'),
+            country.replace('The Netherlands', 'Netherlands'),
+            country.replace('Korea', 'South Korea'),
+            country.replace('South Korea', 'Republic of Korea')
+          ];
+          
+          for (const variant of variations) {
+            geometry = countryGeometries.get(variant);
+            if (geometry) break;
+          }
+        }
+        
+        // Fall back to bounding box if no geometry found
+        if (!geometry) {
+          const bounds = COUNTRY_BOUNDS[country];
+          if (bounds) {
+            const [minLon, minLat, maxLon, maxLat] = bounds;
+            geometry = {
+              type: "Polygon",
+              coordinates: [[
+                [minLon, maxLat],
+                [maxLon, maxLat],
+                [maxLon, minLat],
+                [minLon, minLat],
+                [minLon, maxLat]
+              ]]
+            };
+          } else {
+            console.warn(`No geometry found for country: ${country}`);
+            continue;
+          }
+        }
+        
+        // Create feature with threat actor metadata
+        const feature = new atlas.data.Feature(geometry, {
+          country,
+          count,
+          normalizedCount: count / maxCount,
+          actors: actorsByCountry.get(country)
+        });
+        
+        features.push(feature);
+      }
+      
+      if (features.length === 0) {
+        console.error("Could not create any country boundaries");
+        return;
+      }
+
+      // Add features to the reused data source
+      dataSource.add(features);
+    } catch (error) {
+      console.error('Error loading country boundaries:', error);
       return;
     }
-
-    // Add features to the reused data source
-    dataSource.add(features);
 
     // Create polygon fill layer with heatmap-style color gradient
     const polygonLayer = new atlas.layer.PolygonLayer(dataSource, IDS.polygonLayer, {
