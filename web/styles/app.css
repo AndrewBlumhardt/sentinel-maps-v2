@@ -117,17 +117,17 @@ body {
   font-size: 18px;
   font-weight: 600;
   color: #60a5fa;
-  padding-top: 80px;
+  padding-top: 100px;
 }
 
 .panel-header button {
-  padding: 6px 14px;
-  background: rgba(220, 38, 38, 0.15);
-  border: 1px solid rgba(220, 38, 38, 0.4);
+  padding: 8px 12px;
+  background: #ef4444;
+  border: none;
   border-radius: 6px;
-  color: #f87171;
+  color: #fff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   transition: all 0.2s;
   display: flex;
@@ -136,8 +136,8 @@ body {
 }
 
 .panel-header button:hover {
-  background: rgba(220, 38, 38, 0.25);
-  border-color: rgba(220, 38, 38, 0.6);
+  background: #dc2626;
+  transform: scale(1.02);
 }
 
 /* Floating close button for left panel - hidden */
