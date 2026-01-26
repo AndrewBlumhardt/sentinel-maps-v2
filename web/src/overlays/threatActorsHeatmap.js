@@ -361,15 +361,22 @@ async function enable(map, mode, onCountryClick) {
       fillOpacity: 0.6
     });
     
-    // Add text labels for country names
+    // Add text labels for country names (text only, no icons)
     const labelLayer = new atlas.layer.SymbolLayer(dataSource, IDS.polygonLayer + '_labels', {
+      iconOptions: {
+        image: 'none'  // Remove pin icons
+      },
       textOptions: {
         textField: ['get', 'country'],
-        size: 12,
-        color: '#ffffff',
-        haloColor: '#000000',
+        size: 11,
+        color: '#000000',
+        haloColor: '#ffffff',
         haloWidth: 2,
-        font: ['SegoeUi-Bold']
+        haloBlur: 1,
+        font: ['SegoeUi-Bold'],
+        offset: [0, 0],
+        allowOverlap: false,
+        ignorePlacement: false
       },
       filter: ['has', 'country']
     });
@@ -385,9 +392,15 @@ async function enable(map, mode, onCountryClick) {
     map.layers.add(outlineLayer);
     map.layers.add(labelLayer);
     
-    // Show the legend
+    // Show the legend and close button for country view
     const legend = document.getElementById("countryLegend");
     if (legend) legend.classList.remove("hidden");
+    
+    const closeBtn = document.getElementById("floatingPanelCloseBtn");
+    if (closeBtn) {
+      closeBtn.classList.remove("hidden");
+      closeBtn.textContent = "✕ Close Country View";
+    }
 
     // Register mouse interactions (click to show details, hover for pointer cursor)
     if (onCountryClick) {
@@ -498,9 +511,15 @@ function disable(map) {
     }
   } catch (e) { /* ignore */ }
   
-  // Hide the legend
+  // Hide the legend and close button
   const legend = document.getElementById("countryLegend");
   if (legend) legend.classList.add("hidden");
+  
+  const closeBtn = document.getElementById("floatingPanelCloseBtn");
+  if (closeBtn) {
+    closeBtn.classList.add("hidden");
+    closeBtn.textContent = "✕ Close Menu";
+  }
   
   map.getCanvasContainer().style.cursor = 'grab';
 }
