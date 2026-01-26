@@ -347,37 +347,47 @@ async function enable(map, mode, onCountryClick) {
       return;
     }
 
-    // Create polygon fill layer with standard heatmap color gradient (matches Azure Maps default)
+    // Create polygon fill layer with logical color scheme based on threat actor count
     const polygonLayer = new atlas.layer.PolygonLayer(dataSource, IDS.polygonLayer, {
       fillColor: [
-        "interpolate",
-        ["linear"],
-        ["get", "normalizedCount"],
-        0,    "#00f",  // Blue (low)
-        0.25, "#0ff",  // Cyan
-        0.5,  "#0f0",  // Green
-        0.75, "#ff0",  // Yellow
-        1.0,  "#f00"   // Red (high)
+        "step",
+        ["get", "count"],
+        "#0080ff",  // 1-5 actors: Blue
+        6,  "#00ff00",  // 6-15 actors: Green
+        16, "#ffff00",  // 16-30 actors: Yellow
+        31, "#ff8000",  // 31-50 actors: Orange
+        51, "#ff0000"   // 50+ actors: Red
       ],
       fillOpacity: 0.6
     });
+    
+    // Add text labels for country names
+    const labelLayer = new atlas.layer.SymbolLayer(dataSource, IDS.polygonLayer + '_labels', {
+      textOptions: {
+        textField: ['get', 'country'],
+        size: 12,
+        color: '#ffffff',
+        haloColor: '#000000',
+        haloWidth: 2,
+        font: ['SegoeUi-Bold']
+      },
+      filter: ['has', 'country']
+    });
 
-    // Outline layer for country borders with matching colors
+    // Outline layer for country borders
     const outlineLayer = new atlas.layer.LineLayer(dataSource, IDS.outlineLayer, {
-      strokeColor: [
-        "interpolate",
-        ["linear"],
-        ["get", "normalizedCount"],
-        0,    "#00f",  // Blue (low)
-        0.5,  "#0f0",  // Green
-        1.0,  "#f00"   // Red (high)
-      ],
-      strokeWidth: 2,
+      strokeColor: "#ffffff",
+      strokeWidth: 1.5,
       strokeOpacity: 0.8
     });
 
     map.layers.add(polygonLayer);
     map.layers.add(outlineLayer);
+    map.layers.add(labelLayer);
+    
+    // Show the legend
+    const legend = document.getElementById("countryLegend");
+    if (legend) legend.classList.remove("hidden");
 
     // Register mouse interactions (click to show details, hover for pointer cursor)
     if (onCountryClick) {
@@ -450,6 +460,12 @@ async function enable(map, mode, onCountryClick) {
 function disable(map) {
   // Remove layers first
   try {
+    if (map.layers.getLayerById(IDS.polygonLayer + '_labels')) {
+      map.layers.remove(IDS.polygonLayer + '_labels');
+    }
+  } catch (e) { /* ignore */ }
+  
+  try {
     const outlineLayer = map.layers.getLayerById(IDS.outlineLayer);
     if (outlineLayer) {
       map.events.remove('click', outlineLayer);
@@ -481,6 +497,10 @@ function disable(map) {
       map.sources.remove(IDS.source);
     }
   } catch (e) { /* ignore */ }
+  
+  // Hide the legend
+  const legend = document.getElementById("countryLegend");
+  if (legend) legend.classList.add("hidden");
   
   map.getCanvasContainer().style.cursor = 'grab';
 }
