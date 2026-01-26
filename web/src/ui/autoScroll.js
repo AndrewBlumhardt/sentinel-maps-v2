@@ -28,11 +28,11 @@ export function addAutoScrollControl(map) {
   const btn = document.createElement("button");
   btn.id = "autoScrollBtn";
   btn.style.position = "fixed";
-  btn.style.bottom = "142px";
-  btn.style.right = "10px";
+  btn.style.bottom = "144px";
+  btn.style.right = "9px";
   btn.style.zIndex = "5000";
-  btn.style.width = "45px";
-  btn.style.height = "41px";
+  btn.style.width = "33px";
+  btn.style.height = "33px";
   btn.style.padding = "0";
   btn.style.borderRadius = "4px";
   btn.style.border = "2px solid rgba(0,0,0,0.15)";
