@@ -104,11 +104,11 @@ body {
 }
 
 .panel-header {
-  padding: 16px 20px;
+  padding: 12px 12px 16px 12px;
   border-bottom: 1px solid rgba(59, 130, 246, 0.15);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -117,22 +117,24 @@ body {
   font-size: 18px;
   font-weight: 600;
   color: #60a5fa;
-  padding-top: 100px;
+  padding-top: 20px;
 }
 
 .panel-header button {
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #ef4444;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: #fff;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  width: 160px;
 }
 
 .panel-header button:hover {
