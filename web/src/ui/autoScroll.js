@@ -28,22 +28,24 @@ export function addAutoScrollControl(map) {
   const btn = document.createElement("button");
   btn.id = "autoScrollBtn";
   btn.style.position = "fixed";
-  btn.style.bottom = "30px";
-  btn.style.right = "30px";
+  btn.style.bottom = "120px";
+  btn.style.right = "10px";
   btn.style.zIndex = "5000";
-  btn.style.padding = "10px 14px";
-  btn.style.borderRadius = "8px";
-  btn.style.border = "none";
-  btn.style.background = "#3b82f6";
-  btn.style.color = "#fff";
+  btn.style.width = "32px";
+  btn.style.height = "32px";
+  btn.style.padding = "0";
+  btn.style.borderRadius = "4px";
+  btn.style.border = "2px solid rgba(0,0,0,0.15)";
+  btn.style.background = "#fff";
+  btn.style.color = "#3b82f6";
   btn.style.cursor = "pointer";
-  btn.style.fontSize = "20px";
-  btn.style.fontWeight = "600";
-  btn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+  btn.style.fontSize = "18px";
+  btn.style.fontWeight = "400";
+  btn.style.boxShadow = "0 0 4px rgba(0,0,0,0.3)";
   btn.style.transition = "all 0.2s";
   btn.style.display = "flex";
   btn.style.alignItems = "center";
-  btn.style.gap = "8px";
+  btn.style.justifyContent = "center";
   btn.title = "Toggle auto-scroll";
   
   // Set arrow based on direction
@@ -55,27 +57,25 @@ export function addAutoScrollControl(map) {
     isScrolling = !isScrolling;
     
     if (isScrolling) {
-      btn.style.background = "#10b981";
+      btn.style.background = "#3b82f6";
+      btn.style.color = "#fff";
       startAutoScroll(map);
     } else {
-      btn.style.background = "#3b82f6";
+      btn.style.background = "#fff";
+      btn.style.color = "#3b82f6";
       stopAutoScroll();
     }
   });
   
   btn.addEventListener("mouseenter", () => {
     if (!isScrolling) {
-      btn.style.background = "#2563eb";
-    } else {
-      btn.style.background = "#059669";
+      btn.style.background = "#f0f0f0";
     }
   });
   
   btn.addEventListener("mouseleave", () => {
     if (!isScrolling) {
-      btn.style.background = "#3b82f6";
-    } else {
-      btn.style.background = "#10b981";
+      btn.style.background = "#fff";
     }
   });
 }
