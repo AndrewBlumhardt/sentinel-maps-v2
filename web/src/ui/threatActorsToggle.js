@@ -3,27 +3,28 @@ import { toggleThreatActorsHeatmap } from "../overlays/threatActorsHeatmap.js";
 export function addThreatActorsToggle(map, onCountryClick) {
   const wrap = document.createElement("div");
   wrap.id = "threatActorsControlPanel";
-  wrap.style.position = "absolute";
-  wrap.style.top = "12px";
-  wrap.style.left = "12px";
+  wrap.style.position = "fixed";
+  wrap.style.top = "20px";
+  wrap.style.right = "20px";
   wrap.style.zIndex = "5000";
   wrap.style.pointerEvents = "auto";
   wrap.style.display = "flex";
   wrap.style.gap = "8px";
-  wrap.style.background = "rgba(31, 41, 55, 0.9)";
-  wrap.style.padding = "6px";
+  wrap.style.background = "rgba(31, 41, 55, 0.95)";
+  wrap.style.padding = "10px 12px";
   wrap.style.borderRadius = "8px";
   wrap.style.backdropFilter = "blur(10px)";
-  wrap.style.transition = "transform 0.3s ease";
+  wrap.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+  wrap.style.transition = "transform 0.3s ease, opacity 0.3s ease";
 
   wrap.innerHTML = `
-    <label style="color:#fff;font-size:13px;font-weight:500;padding:0 8px;">Threat Map</label>
-    <button id="taToggle" style="padding:6px 10px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">Off</button>
-    <select id="taMode" style="padding:6px 8px;border-radius:6px;border:none;background:#374151;color:#fff;cursor:pointer;font-size:13px;" disabled>
+    <label style="color:#fff;font-size:14px;font-weight:600;padding:0 8px;display:flex;align-items:center;">Threat Map</label>
+    <button id="taToggle" style="padding:8px 14px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Off</button>
+    <select id="taMode" style="padding:8px 10px;border-radius:6px;border:none;background:#374151;color:#fff;cursor:pointer;font-size:13px;" disabled>
       <option value="heatmap">Heatmap</option>
       <option value="country">Country View</option>
     </select>
-    <button id="hideControlPanel" style="padding:6px 10px;border-radius:6px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-size:13px;font-weight:600;margin-left:4px;">Hide ◀</button>
+    <button id="hideControlPanel" style="padding:8px 12px;border-radius:6px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-size:16px;font-weight:600;margin-left:4px;">×</button>
   `;
 
   document.body.appendChild(wrap);
@@ -31,11 +32,11 @@ export function addThreatActorsToggle(map, onCountryClick) {
   // Create show button (initially hidden)
   const showBtn = document.createElement("button");
   showBtn.id = "showControlPanel";
-  showBtn.style.position = "absolute";
-  showBtn.style.top = "12px";
-  showBtn.style.left = "12px";
+  showBtn.style.position = "fixed";
+  showBtn.style.top = "20px";
+  showBtn.style.right = "20px";
   showBtn.style.zIndex = "5000";
-  showBtn.style.padding = "8px 12px";
+  showBtn.style.padding = "10px 14px";
   showBtn.style.borderRadius = "8px";
   showBtn.style.border = "none";
   showBtn.style.background = "#10b981";
@@ -43,9 +44,9 @@ export function addThreatActorsToggle(map, onCountryClick) {
   showBtn.style.cursor = "pointer";
   showBtn.style.fontSize = "14px";
   showBtn.style.fontWeight = "600";
-  showBtn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+  showBtn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
   showBtn.style.display = "none";
-  showBtn.textContent = "Show Controls ▶";
+  showBtn.textContent = "☰ Threat Map";
   document.body.appendChild(showBtn);
 
   let on = false;
@@ -56,11 +57,8 @@ export function addThreatActorsToggle(map, onCountryClick) {
   
   // Hide/Show control panel handlers
   hideBtn.addEventListener("click", () => {
-    const leftPanel = document.getElementById("leftPanel");
-    wrap.style.transform = "translateX(-100%)";
-    if (leftPanel) {
-      leftPanel.classList.add("hidden");
-    }
+    wrap.style.opacity = "0";
+    wrap.style.transform = "translateX(20px)";
     setTimeout(() => {
       wrap.style.display = "none";
       showBtn.style.display = "block";
@@ -70,6 +68,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
   showBtn.addEventListener("click", () => {
     wrap.style.display = "flex";
     setTimeout(() => {
+      wrap.style.opacity = "1";
       wrap.style.transform = "translateX(0)";
     }, 10);
     showBtn.style.display = "none";
