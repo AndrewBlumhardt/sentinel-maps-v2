@@ -111,6 +111,57 @@ const COUNTRY_ISO_CODES = {
   "The Netherlands": "NL"
 };
 
+// Local bounding box coordinates for countries (to avoid API calls)
+// Format: [minLon, minLat, maxLon, maxLat]
+const COUNTRY_BOUNDS = {
+  "Russia": [19.25, 41.15, 190.0, 81.86],
+  "China": [73.68, 18.16, 134.77, 53.56],
+  "Iran": [44.03, 25.06, 63.33, 39.78],
+  "Iraq": [38.79, 29.07, 48.57, 37.38],
+  "Lebanon": [35.10, 33.05, 36.62, 34.69],
+  "North Korea": [124.32, 37.67, 130.67, 43.01],
+  "Vietnam": [102.14, 8.18, 109.47, 23.39],
+  "Pakistan": [60.87, 23.69, 77.84, 37.13],
+  "India": [68.18, 6.75, 97.40, 35.51],
+  "Turkey": [25.67, 35.82, 44.83, 42.11],
+  "Italy": [6.63, 35.49, 18.52, 47.09],
+  "Belarus": [23.18, 51.26, 32.77, 56.17],
+  "Ukraine": [22.14, 44.39, 40.18, 52.38],
+  "Brazil": [-73.98, -33.75, -28.85, 5.27],
+  "Mexico": [-118.40, 14.54, -86.71, 32.72],
+  "Nigeria": [2.67, 4.27, 14.68, 13.89],
+  "Israel": [34.27, 29.50, 35.88, 33.34],
+  "United Arab Emirates": [51.58, 22.63, 56.38, 26.08],
+  "Austria": [9.53, 46.37, 17.16, 49.02],
+  "France": [-5.14, 41.33, 9.56, 51.09],
+  "Spain": [-18.17, 27.64, 4.32, 43.79],
+  "Tunisia": [7.52, 30.24, 11.60, 37.54],
+  "Algeria": [-8.67, 18.97, 12.00, 37.09],
+  "Saudi Arabia": [34.50, 16.38, 55.67, 32.16],
+  "Libya": [9.39, 19.50, 25.15, 33.17],
+  "Georgia": [39.96, 41.05, 46.71, 43.59],
+  "Armenia": [43.45, 38.84, 46.63, 41.30],
+  "Taiwan": [120.04, 21.90, 122.01, 25.30],
+  "Indonesia": [95.01, -11.01, 141.02, 6.08],
+  "Kazakhstan": [46.49, 40.94, 87.36, 55.44],
+  "Syria": [35.73, 32.31, 42.38, 37.23],
+  "Venezuela": [-73.35, 0.65, -59.80, 12.20],
+  "Philippines": [116.93, 4.64, 126.60, 21.12],
+  "Singapore": [103.64, 1.16, 104.01, 1.47],
+  "Romania": [20.26, 43.62, 29.71, 48.27],
+  "Uzbekistan": [55.99, 37.18, 73.13, 45.59],
+  "Canada": [-141.00, 41.68, -52.62, 83.11],
+  "United States": [-179.15, 18.91, -66.95, 71.39],
+  "United States of America": [-179.15, 18.91, -66.95, 71.39],
+  "Gaza": [34.22, 31.22, 34.57, 31.59],
+  "Korea": [124.61, 33.11, 131.87, 38.61],
+  "South Korea": [124.61, 33.11, 131.87, 38.61],
+  "Germany": [5.87, 47.27, 15.04, 55.06],
+  "Poland": [14.12, 49.00, 24.15, 54.84],
+  "United Kingdom": [-8.62, 49.96, 1.77, 60.84],
+  "The Netherlands": [3.36, 50.75, 7.23, 53.55]
+};
+
 const IDS = {
   source: "taByCountrySource",
   heatLayer: "taHeatLayer",
@@ -139,11 +190,8 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
 }
 
 async function enable(map, mode, onCountryClick) {
-  // Defensive cleanup
-  if (map.layers.getLayerById(IDS.outlineLayer)) map.layers.remove(IDS.outlineLayer);
-  if (map.layers.getLayerById(IDS.polygonLayer)) map.layers.remove(IDS.polygonLayer);
-  if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
-  if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
+  // Defensive cleanup - remove all layers and sources
+  disable(map);
 
   // Load TSV data
   const resp = await fetch("/data/threat-actors.tsv", { cache: "no-store" });
@@ -180,64 +228,42 @@ async function enable(map, mode, onCountryClick) {
   const maxCount = Math.max(...counts.values());
 
   if (mode === "country") {
-    // Country polygon view - fetch actual country boundaries
+    // Country polygon view - use local bounding boxes
     const polygonSource = new atlas.source.DataSource(IDS.source);
     
-    // Fetch country boundaries for each country with threat actors
-    const boundaryPromises = [];
+    // Create polygon features from local bounding box data
+    const features = [];
     for (const [country, count] of counts.entries()) {
-      const isoCode = COUNTRY_ISO_CODES[country];
-      if (!isoCode) {
-        console.warn(`No ISO code for country: ${country}`);
+      const bounds = COUNTRY_BOUNDS[country];
+      if (!bounds) {
+        console.warn(`No bounding box for country: ${country}`);
         continue;
       }
 
-      // Fetch country boundary using Fuzzy Search with geometry
-      const subscriptionKey = map.authentication.getToken();
-      const promise = fetch(
-        `https://atlas.microsoft.com/search/fuzzy/json?api-version=1.0&query=${encodeURIComponent(country)}&typeahead=false&limit=1&countrySet=${isoCode}&entityType=Country&subscription-key=${subscriptionKey}`
-      )
-        .then(r => r.ok ? r.json() : Promise.reject('Search failed'))
-        .then(searchData => {
-          if (searchData && searchData.results && searchData.results.length > 0) {
-            const result = searchData.results[0];
-            // Use the viewport/bounding box to create a simple rectangle for now
-            // This is a fallback since getting actual detailed boundaries requires additional API calls
-            if (result.viewport) {
-              const vp = result.viewport;
-              // Create a simple bounding box polygon
-              const polygon = new atlas.data.Polygon([[
-                [vp.topLeftPoint.lon, vp.topLeftPoint.lat],
-                [vp.btmRightPoint.lon, vp.topLeftPoint.lat],
-                [vp.btmRightPoint.lon, vp.btmRightPoint.lat],
-                [vp.topLeftPoint.lon, vp.btmRightPoint.lat],
-                [vp.topLeftPoint.lon, vp.topLeftPoint.lat]
-              ]]);
-              
-              return new atlas.data.Feature(polygon, {
-                country,
-                count,
-                normalizedCount: count / maxCount,
-                actors: actorsByCountry.get(country)
-              });
-            }
-          }
-          return null;
-        })
-        .catch(err => {
-          console.warn(`Failed to fetch boundary for ${country}:`, err);
-          return null;
-        });
-
-      boundaryPromises.push(promise);
+      const [minLon, minLat, maxLon, maxLat] = bounds;
+      
+      // Create a bounding box polygon
+      const polygon = new atlas.data.Polygon([[
+        [minLon, maxLat],  // Top-left
+        [maxLon, maxLat],  // Top-right
+        [maxLon, minLat],  // Bottom-right
+        [minLon, minLat],  // Bottom-left
+        [minLon, maxLat]   // Close polygon
+      ]]);
+      
+      const feature = new atlas.data.Feature(polygon, {
+        country,
+        count,
+        normalizedCount: count / maxCount,
+        actors: actorsByCountry.get(country)
+      });
+      
+      features.push(feature);
     }
-
-    // Wait for all boundaries to load
-    const features = (await Promise.all(boundaryPromises)).filter(f => f !== null);
     
     if (features.length === 0) {
-      console.error("Could not load any country boundaries");
-      return; // Fall back gracefully
+      console.error("Could not create any country boundaries");
+      return;
     }
 
     polygonSource.add(features);
