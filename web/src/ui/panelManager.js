@@ -35,11 +35,19 @@ export function showCountryDetails(countryProps) {
 
       return `
         <div style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(name)}</div>
-          <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px;">
-            <span style="display: inline-block; padding: 2px 8px; background: rgba(59, 130, 246, 0.2); border-radius: 4px; font-size: 11px;">
-              ${escapeHtml(motivation)}
-            </span>
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(name)}</div>
+              <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px;">
+                <span style="display: inline-block; padding: 2px 8px; background: rgba(59, 130, 246, 0.2); border-radius: 4px; font-size: 11px;">
+                  ${escapeHtml(motivation)}
+                </span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; margin-left: 8px;">
+              <button class="actor-search-btn" data-name="${escapeHtml(name)}" style="padding: 6px 10px; background: #0078d4; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="Search Bing">🔍 Search</button>
+              <button class="actor-ai-btn" data-name="${escapeHtml(name)}" data-motivation="${escapeHtml(motivation)}" data-aka="${escapeHtml(otherNames)}" style="padding: 6px 10px; background: #10b981; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="AI Prompt">🤖 AI</button>
+            </div>
           </div>
           ${otherNames ? `<div style="font-size: 12px; color: rgba(255,255,255,0.5);">aka: ${escapeHtml(otherNames)}</div>` : ""}
           ${source ? `<div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px;">Source: ${escapeHtml(source)}</div>` : ""}
@@ -48,6 +56,34 @@ export function showCountryDetails(countryProps) {
     }).join("");
 
     listEl.innerHTML = actorItems;
+    
+    // Wire up search buttons
+    document.querySelectorAll(".actor-search-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const name = e.target.getAttribute("data-name");
+        const query = encodeURIComponent(`${name} threat actor cyber security`);
+        window.open(`https://www.bing.com/search?q=${query}`, "_blank");
+      });
+    });
+    
+    // Wire up AI prompt buttons
+    document.querySelectorAll(".actor-ai-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const name = e.target.getAttribute("data-name");
+        const motivation = e.target.getAttribute("data-motivation");
+        const aka = e.target.getAttribute("data-aka");
+        
+        const prompt = `Tell me about the ${name} threat actor group. ${aka ? `Also known as: ${aka}. ` : ""}Their motivation is: ${motivation}. Provide details about their tactics, techniques, and known activities.`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(prompt).then(() => {
+          alert("AI prompt copied to clipboard! Paste it into your favorite AI assistant.");
+        }).catch(() => {
+          // Fallback: show prompt in alert
+          alert("Copy this prompt:\n\n" + prompt);
+        });
+      });
+    });
   } else {
     listEl.innerHTML = `<div style="padding: 12px; color: rgba(255,255,255,0.5);">No actors found</div>`;
   }

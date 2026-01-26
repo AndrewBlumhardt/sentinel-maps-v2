@@ -39,8 +39,8 @@ export function addAutoScrollControl(map) {
   btn.style.background = "#fff";
   btn.style.color = "#3b82f6";
   btn.style.cursor = "pointer";
-  btn.style.fontSize = "20px";
-  btn.style.fontWeight = "700";
+  btn.style.fontSize = "22px";
+  btn.style.fontWeight = "900";
   btn.style.boxShadow = "0 0 4px rgba(0,0,0,0.3)";
   btn.style.transition = "all 0.2s";
   btn.style.display = "flex";
