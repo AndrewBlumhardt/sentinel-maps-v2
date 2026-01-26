@@ -371,9 +371,39 @@ async function enable(map, mode, onCountryClick) {
 
 
 function disable(map) {
-  if (map.layers.getLayerById(IDS.outlineLayer)) map.layers.remove(IDS.outlineLayer);
-  if (map.layers.getLayerById(IDS.polygonLayer)) map.layers.remove(IDS.polygonLayer);
-  if (map.layers.getLayerById(IDS.heatLayer)) map.layers.remove(IDS.heatLayer);
-  if (map.sources.getById(IDS.source)) map.sources.remove(IDS.source);
+  // Remove layers first
+  try {
+    const outlineLayer = map.layers.getLayerById(IDS.outlineLayer);
+    if (outlineLayer) {
+      map.events.remove('click', outlineLayer);
+      map.events.remove('mousemove', outlineLayer);
+      map.events.remove('mouseleave', outlineLayer);
+      map.layers.remove(IDS.outlineLayer);
+    }
+  } catch (e) { /* ignore */ }
+  
+  try {
+    const polygonLayer = map.layers.getLayerById(IDS.polygonLayer);
+    if (polygonLayer) {
+      map.events.remove('click', polygonLayer);
+      map.events.remove('mousemove', polygonLayer);
+      map.events.remove('mouseleave', polygonLayer);
+      map.layers.remove(IDS.polygonLayer);
+    }
+  } catch (e) { /* ignore */ }
+  
+  try {
+    if (map.layers.getLayerById(IDS.heatLayer)) {
+      map.layers.remove(IDS.heatLayer);
+    }
+  } catch (e) { /* ignore */ }
+  
+  // Remove source after all layers are removed
+  try {
+    if (map.sources.getById(IDS.source)) {
+      map.sources.remove(IDS.source);
+    }
+  } catch (e) { /* ignore */ }
+  
   map.getCanvasContainer().style.cursor = 'grab';
 }
