@@ -126,4 +126,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
       await applyVisualization();
     }
   });
+  
+  // Load visualization immediately on initialization
+  applyVisualization();
 }
