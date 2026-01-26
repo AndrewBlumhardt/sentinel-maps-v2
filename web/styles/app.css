@@ -122,7 +122,6 @@ body {
 
 .panel-header button {
   padding: 10px 14px;
-  background: #ef4444;
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -134,12 +133,18 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 160px;
 }
 
 .panel-header button:hover {
-  background: #dc2626;
   transform: scale(1.02);
+}
+
+#showThreatMapBtn:hover {
+  background: #059669 !important;
+}
+
+#panelHideBtn:hover {
+  background: #dc2626 !important;
 }
 
 /* Floating close button for left panel - hidden */
