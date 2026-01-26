@@ -178,6 +178,14 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
   
   if (turnOn) {
     if (enabled && currentMode === mode) return;
+    // Ensure clean state before enabling
+    if (enabled) {
+      disable(map);
+      enabled = false;
+      currentMode = null;
+      // Give Azure Maps time to fully cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     await enable(map, mode, onCountryClick);
     enabled = true;
     currentMode = mode;
@@ -186,6 +194,8 @@ export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = nu
     disable(map);
     enabled = false;
     currentMode = null;
+    // Give Azure Maps time to fully cleanup
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
 
