@@ -173,8 +173,7 @@ let enabled = false;
 let currentMode = null;
 let countryData = null;
 
-export async function toggleThreatActorsHeatmap(map, turnOn, onCountryClick = null) {
-  const mode = onCountryClick ? "country" : "heatmap";
+export async function toggleThreatActorsHeatmap(map, turnOn, mode = "heatmap", onCountryClick = null) {
   
   if (turnOn) {
     if (enabled && currentMode === mode) return;
@@ -477,45 +476,43 @@ async function enable(map, mode, onCountryClick) {
     if (onCountryClick) {
       setTimeout(() => {
         map.events.add("click", (e) => {
-          // Get all shapes at click position
-          const shapes = map.layers.getRenderedShapes(e.position, [IDS.heatLayer]);
+          // Get geographic position of click
+          const clickPosition = e.position;
+          let nearestFeature = null;
+          let minDistance = Infinity;
           
-          if (shapes && shapes.length > 0) {
-            // If we clicked directly on a point, use it
-            const props = shapes[0].getProperties();
-            onCountryClick(props);
-          } else {
-            // Otherwise find the nearest point to the click
-            const clickPos = e.position;
-            let nearestShape = null;
-            let minDistance = Infinity;
-            
-            // Query all features from the data source
-            const features = dataSource.toJson().features;
-            
-            for (const feature of features) {
-              if (feature.geometry.type === "Point") {
-                const [lon, lat] = feature.geometry.coordinates;
-                const point = map.positionsToPixels([[lon, lat]])[0];
-                
-                // Calculate pixel distance
-                const dx = point[0] - clickPos[0];
-                const dy = point[1] - clickPos[1];
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                // Consider points within 100px radius
-                if (distance < minDistance && distance < 100) {
-                  minDistance = distance;
-                  nearestShape = feature;
-                }
+          // Query all features from the data source
+          const features = dataSource.toJson().features;
+          
+          for (const feature of features) {
+            if (feature.geometry.type === "Point") {
+              const [lon, lat] = feature.geometry.coordinates;
+              
+              // Convert both click and feature position to pixels for accurate distance
+              const featurePixel = map.positionsToPixels([[lon, lat]])[0];
+              const clickPixel = map.positionsToPixels([clickPosition])[0];
+              
+              // Calculate pixel distance
+              const dx = featurePixel[0] - clickPixel[0];
+              const dy = featurePixel[1] - clickPixel[1];
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              
+              // Find nearest point within heatmap radius (100px)
+              if (distance < minDistance) {
+                minDistance = distance;
+                nearestFeature = feature;
               }
             }
-            
-            if (nearestShape) {
-              onCountryClick(nearestShape.properties);
-            }
+          }
+          
+          // Show details if we clicked within reasonable range (150px to account for heatmap spread)
+          if (nearestFeature && minDistance < 150) {
+            onCountryClick(nearestFeature.properties);
           }
         });
+        
+        // Change cursor on hover over heatmap areas
+        map.getCanvasContainer().style.cursor = "pointer";
       }, 100);
     }
   }

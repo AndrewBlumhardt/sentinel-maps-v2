@@ -49,7 +49,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
   showBtn.textContent = "☰ Threat Map";
   document.body.appendChild(showBtn);
 
-  let on = false;
+  let on = true;  // Start enabled by default
   let mode = "country";
   const toggleBtn = wrap.querySelector("#taToggle");
   const modeSelect = wrap.querySelector("#taMode");
@@ -57,6 +57,9 @@ export function addThreatActorsToggle(map, onCountryClick) {
   
   // Set default mode to Country View
   modeSelect.value = "country";
+  toggleBtn.textContent = "On";
+  toggleBtn.style.background = "#10b981";
+  modeSelect.disabled = false;
   
   // Hide/Show control panel handlers
   hideBtn.addEventListener("click", () => {
@@ -87,10 +90,11 @@ export function addThreatActorsToggle(map, onCountryClick) {
 
       if (on) {
         if (mode === "heatmap") {
-          await toggleThreatActorsHeatmap(map, true);
+          // Pass mode and onCountryClick to enable click handling in heatmap mode too
+          await toggleThreatActorsHeatmap(map, true, "heatmap", onCountryClick);
         } else {
-          // Country view - use bubble layer with click handler
-          await toggleThreatActorsHeatmap(map, true, onCountryClick);
+          // Country view - use polygon layer with click handler
+          await toggleThreatActorsHeatmap(map, true, "country", onCountryClick);
         }
       }
 
