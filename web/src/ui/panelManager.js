@@ -79,33 +79,19 @@ export function hidePanel() {
 }
 
 /**
- * Initialize panel hide button and country view close button
+ * Initialize panel hide buttons
  */
 export function initPanelControls() {
   const hideBtn = document.getElementById("panelHideBtn");
   const floatingBtn = document.getElementById("floatingPanelCloseBtn");
   
-  // Panel hide button - just closes the detail panel
+  // Both buttons just close the left detail panel
   if (hideBtn) {
     hideBtn.addEventListener("click", hidePanel);
   }
   
-  // Floating button - this will be wired up in threatActorsToggle.js to turn off visualization
-  // For now, just hide the panel as a fallback
   if (floatingBtn) {
-    floatingBtn.addEventListener("click", () => {
-      // Check if it says "Close Country View" - if so, trigger threat map toggle off
-      if (floatingBtn.textContent.includes("Country View")) {
-        // Trigger the threat actors toggle to turn off
-        const toggleBtn = document.getElementById("taToggle");
-        if (toggleBtn) {
-          toggleBtn.click();
-        }
-      } else {
-        // Just close the detail panel
-        hidePanel();
-      }
-    });
+    floatingBtn.addEventListener("click", hidePanel);
   }
 }
 

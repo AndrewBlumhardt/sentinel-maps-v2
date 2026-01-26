@@ -340,8 +340,21 @@ async function enable(map, mode, onCountryClick) {
         return;
       }
 
-      // Add features to the reused data source
+      // Add country polygons to data source
       dataSource.add(features);
+      
+      // Create separate point data source for labels (one point per country at centroid)
+      const labelSource = new atlas.source.DataSource(IDS.source + '_labels');
+      for (const [country, count] of counts.entries()) {
+        const centroid = COUNTRY_CENTROIDS[country];
+        if (centroid) {
+          labelSource.add(new atlas.data.Feature(
+            new atlas.data.Point(centroid),
+            { country, count }
+          ));
+        }
+      }
+      map.sources.add(labelSource);
     } catch (error) {
       console.error('Error loading country boundaries:', error);
       return;
@@ -361,8 +374,8 @@ async function enable(map, mode, onCountryClick) {
       fillOpacity: 0.6
     });
     
-    // Add text labels for country names (text only, no icons)
-    const labelLayer = new atlas.layer.SymbolLayer(dataSource, IDS.polygonLayer + '_labels', {
+    // Add text labels for country names (one per country at centroid)
+    const labelLayer = new atlas.layer.SymbolLayer(labelSource, IDS.polygonLayer + '_labels', {
       iconOptions: {
         image: 'none'  // Remove pin icons
       },
@@ -375,10 +388,8 @@ async function enable(map, mode, onCountryClick) {
         haloBlur: 1,
         font: ['SegoeUi-Bold'],
         offset: [0, 0],
-        allowOverlap: false,
-        ignorePlacement: false
-      },
-      filter: ['has', 'country']
+        anchor: 'center'
+      }
     });
 
     // Outline layer for country borders
@@ -392,15 +403,9 @@ async function enable(map, mode, onCountryClick) {
     map.layers.add(outlineLayer);
     map.layers.add(labelLayer);
     
-    // Show the legend and close button for country view
+    // Show the legend for country view
     const legend = document.getElementById("countryLegend");
     if (legend) legend.classList.remove("hidden");
-    
-    const closeBtn = document.getElementById("floatingPanelCloseBtn");
-    if (closeBtn) {
-      closeBtn.classList.remove("hidden");
-      closeBtn.textContent = "✕ Close Country View";
-    }
 
     // Register mouse interactions (click to show details, hover for pointer cursor)
     if (onCountryClick) {
@@ -511,15 +516,16 @@ function disable(map) {
     }
   } catch (e) { /* ignore */ }
   
-  // Hide the legend and close button
+  // Remove label source
+  try {
+    if (map.sources.getById(IDS.source + '_labels')) {
+      map.sources.remove(IDS.source + '_labels');
+    }
+  } catch (e) { /* ignore */ }
+  
+  // Hide the legend
   const legend = document.getElementById("countryLegend");
   if (legend) legend.classList.add("hidden");
-  
-  const closeBtn = document.getElementById("floatingPanelCloseBtn");
-  if (closeBtn) {
-    closeBtn.classList.add("hidden");
-    closeBtn.textContent = "✕ Close Menu";
-  }
   
   map.getCanvasContainer().style.cursor = 'grab';
 }
