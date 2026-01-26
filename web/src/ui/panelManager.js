@@ -16,7 +16,7 @@ export function showCountryDetails(countryProps) {
 
   const { country, count, actors } = countryProps;
 
-  // Update panel content
+  // Update panel content section
   titleEl.textContent = country || "Unknown Country";
   
   metaEl.innerHTML = `
