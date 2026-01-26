@@ -2,6 +2,7 @@ import { toggleThreatActorsHeatmap } from "../overlays/threatActorsHeatmap.js";
 
 export function addThreatActorsToggle(map, onCountryClick) {
   const wrap = document.createElement("div");
+  wrap.id = "threatActorsControlPanel";
   wrap.style.position = "absolute";
   wrap.style.top = "12px";
   wrap.style.left = "12px";
@@ -13,6 +14,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
   wrap.style.padding = "6px";
   wrap.style.borderRadius = "8px";
   wrap.style.backdropFilter = "blur(10px)";
+  wrap.style.transition = "transform 0.3s ease";
 
   wrap.innerHTML = `
     <label style="color:#fff;font-size:13px;font-weight:500;padding:0 8px;">Threat Map</label>
@@ -21,14 +23,53 @@ export function addThreatActorsToggle(map, onCountryClick) {
       <option value="heatmap">Heatmap</option>
       <option value="country">Country View</option>
     </select>
+    <button id="hideControlPanel" style="padding:6px 10px;border-radius:6px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-size:13px;font-weight:600;margin-left:4px;">Hide ◀</button>
   `;
 
   document.body.appendChild(wrap);
+  
+  // Create show button (initially hidden)
+  const showBtn = document.createElement("button");
+  showBtn.id = "showControlPanel";
+  showBtn.style.position = "absolute";
+  showBtn.style.top = "12px";
+  showBtn.style.left = "12px";
+  showBtn.style.zIndex = "5000";
+  showBtn.style.padding = "8px 12px";
+  showBtn.style.borderRadius = "8px";
+  showBtn.style.border = "none";
+  showBtn.style.background = "#10b981";
+  showBtn.style.color = "#fff";
+  showBtn.style.cursor = "pointer";
+  showBtn.style.fontSize = "14px";
+  showBtn.style.fontWeight = "600";
+  showBtn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+  showBtn.style.display = "none";
+  showBtn.textContent = "Show Controls ▶";
+  document.body.appendChild(showBtn);
 
   let on = false;
   let mode = "heatmap";
   const toggleBtn = wrap.querySelector("#taToggle");
   const modeSelect = wrap.querySelector("#taMode");
+  const hideBtn = wrap.querySelector("#hideControlPanel");
+  
+  // Hide/Show control panel handlers
+  hideBtn.addEventListener("click", () => {
+    wrap.style.transform = "translateX(-100%)";
+    setTimeout(() => {
+      wrap.style.display = "none";
+      showBtn.style.display = "block";
+    }, 300);
+  });
+  
+  showBtn.addEventListener("click", () => {
+    wrap.style.display = "flex";
+    setTimeout(() => {
+      wrap.style.transform = "translateX(0)";
+    }, 10);
+    showBtn.style.display = "none";
+  });
 
   async function applyVisualization() {
     toggleBtn.disabled = true;
