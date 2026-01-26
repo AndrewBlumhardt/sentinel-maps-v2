@@ -472,6 +472,52 @@ async function enable(map, mode, onCountryClick) {
     });
 
     map.layers.add(heat);
+    
+    // Add click handling for heatmap - find nearest country point
+    if (onCountryClick) {
+      setTimeout(() => {
+        map.events.add("click", (e) => {
+          // Get all shapes at click position
+          const shapes = map.layers.getRenderedShapes(e.position, [IDS.heatLayer]);
+          
+          if (shapes && shapes.length > 0) {
+            // If we clicked directly on a point, use it
+            const props = shapes[0].getProperties();
+            onCountryClick(props);
+          } else {
+            // Otherwise find the nearest point to the click
+            const clickPos = e.position;
+            let nearestShape = null;
+            let minDistance = Infinity;
+            
+            // Query all features from the data source
+            const features = dataSource.toJson().features;
+            
+            for (const feature of features) {
+              if (feature.geometry.type === "Point") {
+                const [lon, lat] = feature.geometry.coordinates;
+                const point = map.positionsToPixels([[lon, lat]])[0];
+                
+                // Calculate pixel distance
+                const dx = point[0] - clickPos[0];
+                const dy = point[1] - clickPos[1];
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Consider points within 100px radius
+                if (distance < minDistance && distance < 100) {
+                  minDistance = distance;
+                  nearestShape = feature;
+                }
+              }
+            }
+            
+            if (nearestShape) {
+              onCountryClick(nearestShape.properties);
+            }
+          }
+        });
+      }, 100);
+    }
   }
 }
 
