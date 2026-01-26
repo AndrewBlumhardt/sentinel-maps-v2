@@ -295,11 +295,9 @@ async function enable(map, mode, onCountryClick) {
 
     // Add features to the reused data source
     dataSource.add(features);
-    polygonSource.add(features);
-    map.sources.add(polygonSource);
 
-    // Create polygon layer with heatmap colors
-    const polygonLayer = new atlas.layer.PolygonLayer(polygonSource, IDS.polygonLayer, {
+    // Create polygon fill layer with heatmap-style color gradient
+    const polygonLayer = new atlas.layer.PolygonLayer(dataSource, IDS.polygonLayer, {
       fillColor: [
         "interpolate",
         ["linear"],
