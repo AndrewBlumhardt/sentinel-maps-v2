@@ -6,7 +6,7 @@ html, body {
 
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: #000;
+  background: #f0f0f0;
 }
 
 /* App root */
@@ -76,9 +76,10 @@ body {
 /* App Shell with flexbox layout */
 .app-shell {
   display: flex;
-  height: 100%;
+  height: 100vh;
   width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 /* Left panel for threat details */
@@ -137,28 +138,29 @@ body {
 
 /* Floating close button for left panel */
 .floating-panel-close {
-  position: absolute;
-  top: 120px;
-  left: 20px;
-  z-index: 2000;
-  padding: 12px 20px;
-  background: rgba(220, 38, 38, 0.95);
+  position: fixed;
+  top: 180px;
+  left: 30px;
+  z-index: 10000;
+  padding: 14px 24px;
+  background: #dc2626;
   backdrop-filter: blur(8px);
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  border: 3px solid #ffffff;
   border-radius: 8px;
   color: white;
   cursor: pointer;
   font-size: 16px;
   font-weight: 700;
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .floating-panel-close:hover {
-  background: rgba(220, 38, 38, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  background: #b91c1c;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+  border-color: #fef2f2;
 }
 
 .floating-panel-close.hidden {
