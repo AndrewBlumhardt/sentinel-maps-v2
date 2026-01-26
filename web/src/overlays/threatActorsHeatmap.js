@@ -256,6 +256,7 @@ async function enable(map, mode, onCountryClick) {
 
   if (mode === "country") {
     // Country polygon view - fetch actual country boundaries from GeoJSON
+    let labelSource;  // Declare outside try block for proper scope
     try {
       // Fetch world countries GeoJSON from reliable CDN source
       const geoResponse = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
@@ -344,7 +345,7 @@ async function enable(map, mode, onCountryClick) {
       dataSource.add(features);
       
       // Create separate point data source for labels (one point per country at centroid)
-      const labelSource = new atlas.source.DataSource(IDS.source + '_labels');
+      labelSource = new atlas.source.DataSource(IDS.source + '_labels');
       for (const [country, count] of counts.entries()) {
         const centroid = COUNTRY_CENTROIDS[country];
         if (centroid) {

@@ -59,6 +59,9 @@ export function showCountryDetails(countryProps) {
   const floatingBtn = document.getElementById("floatingPanelCloseBtn");
   if (floatingBtn) {
     floatingBtn.classList.remove("hidden");
+    console.log('Close button shown:', floatingBtn, 'hidden class removed:', !floatingBtn.classList.contains('hidden'));
+  } else {
+    console.error('floatingPanelCloseBtn not found in DOM');
   }
 }
 
