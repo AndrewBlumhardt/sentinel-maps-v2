@@ -5,10 +5,10 @@ export function addThreatActorsToggle(map, onCountryClick) {
   wrap.id = "threatActorsControlPanel";
   wrap.style.position = "fixed";
   wrap.style.top = "20px";
-  wrap.style.right = "20px";
+  wrap.style.left = "20px";
   wrap.style.zIndex = "5000";
   wrap.style.pointerEvents = "auto";
-  wrap.style.display = "flex";
+  wrap.style.display = "none";
   wrap.style.gap = "8px";
   wrap.style.background = "rgba(31, 41, 55, 0.95)";
   wrap.style.padding = "10px 12px";
@@ -29,12 +29,12 @@ export function addThreatActorsToggle(map, onCountryClick) {
 
   document.body.appendChild(wrap);
   
-  // Create show button (initially hidden)
+  // Create show button (visible by default)
   const showBtn = document.createElement("button");
   showBtn.id = "showControlPanel";
   showBtn.style.position = "fixed";
   showBtn.style.top = "20px";
-  showBtn.style.right = "20px";
+  showBtn.style.left = "20px";
   showBtn.style.zIndex = "5000";
   showBtn.style.padding = "10px 14px";
   showBtn.style.borderRadius = "8px";
@@ -45,7 +45,7 @@ export function addThreatActorsToggle(map, onCountryClick) {
   showBtn.style.fontSize = "14px";
   showBtn.style.fontWeight = "600";
   showBtn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-  showBtn.style.display = "none";
+  showBtn.style.display = "block";
   showBtn.textContent = "☰ Threat Map";
   document.body.appendChild(showBtn);
 
