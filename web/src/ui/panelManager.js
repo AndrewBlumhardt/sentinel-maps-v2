@@ -55,6 +55,12 @@ export function showCountryDetails(countryProps) {
   // Show panel
   panel.classList.remove("hidden");
   panel.setAttribute("aria-hidden", "false");
+  
+  // Hide floating threat map button since panel has its own button
+  const floatingThreatBtn = document.getElementById("showControlPanel");
+  if (floatingThreatBtn) {
+    floatingThreatBtn.style.display = "none";
+  }
 }
 
 /**
@@ -65,6 +71,13 @@ export function hidePanel() {
   if (panel) {
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
+  }
+  
+  // Show floating threat map button when panel is hidden
+  const floatingThreatBtn = document.getElementById("showControlPanel");
+  const threatControl = document.getElementById("threatActorsControlPanel");
+  if (floatingThreatBtn && (!threatControl || threatControl.style.display === "none")) {
+    floatingThreatBtn.style.display = "block";
   }
 }
 
