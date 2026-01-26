@@ -52,9 +52,14 @@ export function showCountryDetails(countryProps) {
     listEl.innerHTML = `<div style="padding: 12px; color: rgba(255,255,255,0.5);">No actors found</div>`;
   }
 
-  // Show panel
+  // Show panel and floating close button
   panel.classList.remove("hidden");
   panel.setAttribute("aria-hidden", "false");
+  
+  const floatingBtn = document.getElementById("floatingPanelCloseBtn");
+  if (floatingBtn) {
+    floatingBtn.classList.remove("hidden");
+  }
 }
 
 /**
@@ -66,6 +71,11 @@ export function hidePanel() {
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
   }
+  
+  const floatingBtn = document.getElementById("floatingPanelCloseBtn");
+  if (floatingBtn) {
+    floatingBtn.classList.add("hidden");
+  }
 }
 
 /**
@@ -73,8 +83,14 @@ export function hidePanel() {
  */
 export function initPanelControls() {
   const hideBtn = document.getElementById("panelHideBtn");
+  const floatingBtn = document.getElementById("floatingPanelCloseBtn");
+  
   if (hideBtn) {
     hideBtn.addEventListener("click", hidePanel);
+  }
+  
+  if (floatingBtn) {
+    floatingBtn.addEventListener("click", hidePanel);
   }
 }
 
