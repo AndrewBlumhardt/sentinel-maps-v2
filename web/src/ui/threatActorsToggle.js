@@ -50,10 +50,13 @@ export function addThreatActorsToggle(map, onCountryClick) {
   document.body.appendChild(showBtn);
 
   let on = false;
-  let mode = "heatmap";
+  let mode = "country";
   const toggleBtn = wrap.querySelector("#taToggle");
   const modeSelect = wrap.querySelector("#taMode");
   const hideBtn = wrap.querySelector("#hideControlPanel");
+  
+  // Set default mode to Country View
+  modeSelect.value = "country";
   
   // Hide/Show control panel handlers
   hideBtn.addEventListener("click", () => {

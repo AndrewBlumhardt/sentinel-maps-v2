@@ -139,8 +139,9 @@ body {
   border-color: rgba(220, 38, 38, 0.6);
 }
 
-/* Floating close button for left panel */
+/* Floating close button for left panel - hidden */
 .floating-panel-close {
+  display: none !important;
   position: fixed !important;
   top: 100px !important;
   left: 380px !important;
@@ -175,7 +176,7 @@ body {
   position: absolute;
   bottom: 120px;
   left: 20px;
-  z-index: 1000;
+  z-index: 500;
   background: rgba(17, 24, 39, 0.95);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
