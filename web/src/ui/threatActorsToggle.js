@@ -56,7 +56,11 @@ export function addThreatActorsToggle(map, onCountryClick) {
   
   // Hide/Show control panel handlers
   hideBtn.addEventListener("click", () => {
+    const leftPanel = document.getElementById("leftPanel");
     wrap.style.transform = "translateX(-100%)";
+    if (leftPanel) {
+      leftPanel.classList.add("hidden");
+    }
     setTimeout(() => {
       wrap.style.display = "none";
       showBtn.style.display = "block";
