@@ -45,8 +45,8 @@ export function showCountryDetails(countryProps) {
               </div>
             </div>
             <div style="display: flex; gap: 6px; margin-left: 8px;">
-              <button class="actor-search-btn" data-name="${escapeHtml(name)}" style="padding: 6px 10px; background: #0078d4; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="Search Bing">🔍 Search</button>
-              <button class="actor-ai-btn" data-name="${escapeHtml(name)}" data-motivation="${escapeHtml(motivation)}" data-aka="${escapeHtml(otherNames)}" style="padding: 6px 10px; background: #10b981; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="AI Prompt">🤖 AI</button>
+              <button class="actor-search-btn" data-name="${escapeHtml(name)}" data-aka="${escapeHtml(otherNames)}" style="padding: 6px 10px; background: #0078d4; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="Search Bing">🔍 Search</button>
+              <button class="actor-ai-btn" data-name="${escapeHtml(name)}" data-motivation="${escapeHtml(motivation)}" data-aka="${escapeHtml(otherNames)}" style="padding: 6px 10px; background: #10b981; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;" title="Generate AI Prompt">AI Prompt</button>
             </div>
           </div>
           ${otherNames ? `<div style="font-size: 12px; color: rgba(255,255,255,0.5);">aka: ${escapeHtml(otherNames)}</div>` : ""}
@@ -61,7 +61,9 @@ export function showCountryDetails(countryProps) {
     document.querySelectorAll(".actor-search-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         const name = e.target.getAttribute("data-name");
-        const query = encodeURIComponent(`${name} threat actor cyber security`);
+        const aka = e.target.getAttribute("data-aka");
+        const searchTerms = aka ? `${name} ${aka} threat actor` : `${name} threat actor`;
+        const query = encodeURIComponent(searchTerms);
         window.open(`https://www.bing.com/search?q=${query}`, "_blank");
       });
     });
@@ -73,11 +75,25 @@ export function showCountryDetails(countryProps) {
         const motivation = e.target.getAttribute("data-motivation");
         const aka = e.target.getAttribute("data-aka");
         
-        const prompt = `Tell me about the ${name} threat actor group. ${aka ? `Also known as: ${aka}. ` : ""}Their motivation is: ${motivation}. Provide details about their tactics, techniques, and known activities.`;
+        const prompt = `Provide a comprehensive threat intelligence briefing on the ${name} cyber threat actor group${aka ? ` (also known as: ${aka})` : ""}. Include:
+
+1. Overview and attribution
+2. Primary motivations: ${motivation}
+3. Known tactics, techniques, and procedures (TTPs)
+4. MITRE ATT&CK framework mappings
+5. Target sectors and geographies
+6. Notable campaigns and incidents
+7. Indicators of compromise (IOCs) if known
+8. Recommended defensive measures
+
+Please provide detailed, actionable intelligence suitable for security operations teams.`;
         
-        // Copy to clipboard
+        // Copy to clipboard and optionally open ChatGPT
         navigator.clipboard.writeText(prompt).then(() => {
-          alert("AI prompt copied to clipboard! Paste it into your favorite AI assistant.");
+          const openChatGPT = confirm("AI prompt copied to clipboard!\n\nWould you like to open ChatGPT now?\n(You can paste the prompt there)");
+          if (openChatGPT) {
+            window.open("https://chat.openai.com/", "_blank");
+          }
         }).catch(() => {
           // Fallback: show prompt in alert
           alert("Copy this prompt:\n\n" + prompt);
