@@ -192,23 +192,34 @@ async function enable(map, mode, onCountryClick) {
         continue;
       }
 
-      // Fetch country boundary from Azure Maps Search API
+      // Fetch country boundary using Fuzzy Search with geometry
+      const subscriptionKey = map.authentication.getToken();
       const promise = fetch(
-        `https://atlas.microsoft.com/search/polygon?api-version=1.0&query=${encodeURIComponent(country)}&subscription-key=${map.authentication.getToken()}`
+        `https://atlas.microsoft.com/search/fuzzy/json?api-version=1.0&query=${encodeURIComponent(country)}&typeahead=false&limit=1&countrySet=${isoCode}&entityType=Country&subscription-key=${subscriptionKey}`
       )
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data && data.additionalData && data.additionalData.length > 0) {
-            const geometry = data.additionalData[0].geometryData;
-            if (geometry) {
-              // Create polygon feature with threat data
-              const feature = new atlas.data.Feature(geometry, {
+        .then(r => r.ok ? r.json() : Promise.reject('Search failed'))
+        .then(searchData => {
+          if (searchData && searchData.results && searchData.results.length > 0) {
+            const result = searchData.results[0];
+            // Use the viewport/bounding box to create a simple rectangle for now
+            // This is a fallback since getting actual detailed boundaries requires additional API calls
+            if (result.viewport) {
+              const vp = result.viewport;
+              // Create a simple bounding box polygon
+              const polygon = new atlas.data.Polygon([[
+                [vp.topLeftPoint.lon, vp.topLeftPoint.lat],
+                [vp.btmRightPoint.lon, vp.topLeftPoint.lat],
+                [vp.btmRightPoint.lon, vp.btmRightPoint.lat],
+                [vp.topLeftPoint.lon, vp.btmRightPoint.lat],
+                [vp.topLeftPoint.lon, vp.topLeftPoint.lat]
+              ]]);
+              
+              return new atlas.data.Feature(polygon, {
                 country,
                 count,
                 normalizedCount: count / maxCount,
                 actors: actorsByCountry.get(country)
               });
-              return feature;
             }
           }
           return null;
@@ -225,9 +236,12 @@ async function enable(map, mode, onCountryClick) {
     const features = (await Promise.all(boundaryPromises)).filter(f => f !== null);
     
     if (features.length === 0) {
-      throw new Error("Could not load any country boundaries");
+      console.error("Could not load any country boundaries");
+      return; // Fall back gracefully
     }
 
+    polygonSource.add(features);
+    map.sources.add(polygonSource);
     polygonSource.add(features);
     map.sources.add(polygonSource);
 
