@@ -53,34 +53,41 @@ This installs:
 
 ### 2. Configure Authentication
 
-The API uses **DefaultAzureCredential**, which supports:
+The API supports **two authentication methods**:
 
-#### Option A: Managed Identity (Production - Azure Static Web Apps)
-- No configuration needed
-- Grant the Static Web App's Managed Identity:
-  - **Log Analytics Reader** role on workspace `7e65e430-26bf-456e-9b41-4fa4226a45f2`
-  
-\`\`\`bash
-# Get the Static Web App's Managed Identity object ID
-az staticwebapp show --name <your-swa-name> --resource-group sentinel-maps-v2 --query identity.principalId -o tsv
+#### ✅ Option A: Managed Identity (Recommended - Standard Tier)
 
-# Assign the role
-az role assignment create \\
-  --role "Log Analytics Reader" \\
-  --assignee <principal-id> \\
-  --scope /subscriptions/338ca753-a1a6-498e-ab21-0937a2d279b0/resourcegroups/sentinel-maps-v2/providers/microsoft.operationalinsights/workspaces/sentinelmaps
-\`\`\`
+If you have upgraded to **Standard tier** and enabled Managed Identity:
 
-#### Option B: Local Development (Azure CLI)
-\`\`\`bash
-# Login with Azure CLI
-az login
+1. **Enable Managed Identity** (if not already done):
+   - In Azure Portal → Your Static Web App → **Identity**
+   - Set **Status** to **On**
+   - Click **Save**
 
-# Ensure you have access to the workspace
-az monitor log-analytics workspace show \\
-  --workspace-name sentinelmaps \\
-  --resource-group sentinel-maps-v2
-\`\`\`
+2. **Grant Log Analytics Reader role**:
+   ```bash
+   # Get your Managed Identity principal ID
+   PRINCIPAL_ID=$(az staticwebapp show \
+     --name <your-swa-name> \
+     --resource-group sentinel-maps-v2 \
+     --query identity.principalId -o tsv)
+   
+   # Grant Log Analytics Reader role
+   az role assignment create \
+     --role "Log Analytics Reader" \
+     --assignee $PRINCIPAL_ID \
+     --scope /subscriptions/338ca753-a1a6-498e-ab21-0937a2d279b0/resourcegroups/sentinel-maps-v2/providers/microsoft.operationalinsights/workspaces/sentinelmaps
+   ```
+
+3. **That's it!** No environment variables needed. The API automatically uses Managed Identity.
+
+#### Option B: Service Principal (Free Tier)
+
+If you're on **Free tier** (no Managed Identity support):
+
+**📖 See detailed guide: [APP_REGISTRATION_SETUP.md](APP_REGISTRATION_SETUP.md)**
+
+Quick summary: Create App Registration, generate client secret, add environment variables to Static Web App.
 
 ### 3. Environment Variables
 
@@ -190,8 +197,9 @@ In `api/threatIntel/index.js`, update the `kqlQuery` variable to change what dat
 ## Troubleshooting
 
 ### "Failed to fetch threat intel: 403"
-- Check Managed Identity has Log Analytics Reader role
-- Verify workspace ID is correct
+- **Standard tier**: Check Managed Identity has Log Analytics Reader role
+- **Free tier**: Check service principal has Log Analytics Reader role
+- Verify workspace ID is correct: `7e65e430-26bf-456e-9b41-4fa4226a45f2`
 
 ### "No threat intelligence indicators found"
 - Check KQL query returns data in Log Analytics

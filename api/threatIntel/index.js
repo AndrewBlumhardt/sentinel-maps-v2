@@ -5,6 +5,10 @@ module.exports = async function (context, req) {
   try {
     const workspaceId = "7e65e430-26bf-456e-9b41-4fa4226a45f2";
     
+    // DefaultAzureCredential automatically uses:
+    // 1. Managed Identity (if enabled - Standard tier SWA)
+    // 2. Service Principal from env vars (if AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET set)
+    // 3. Azure CLI (for local development)
     const credential = new DefaultAzureCredential();
     const logsQueryClient = new LogsQueryClient(credential);
 
