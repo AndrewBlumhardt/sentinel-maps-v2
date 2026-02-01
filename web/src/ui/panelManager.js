@@ -121,6 +121,18 @@ Please provide detailed, actionable intelligence suitable for security operation
 export function hidePanel() {
   const panel = document.getElementById("leftPanel");
   if (panel) {
+    // Move focus to a safe element before hiding to prevent aria-hidden accessibility warning
+    const hideBtn = document.getElementById("panelHideBtn");
+    if (hideBtn && document.activeElement === hideBtn) {
+      // Move focus to the map container or body
+      const mapContainer = document.getElementById("map");
+      if (mapContainer) {
+        mapContainer.focus();
+      } else {
+        document.body.focus();
+      }
+    }
+    
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
   }
