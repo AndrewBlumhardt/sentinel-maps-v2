@@ -103,7 +103,9 @@ async function enable(map) {
     // Fetch threat intelligence data
     const response = await fetch("/api/threatIntel");
     if (!response.ok) {
-      throw new Error(`Failed to fetch threat intel: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("API Error Details:", errorData);
+      throw new Error(`Failed to fetch threat intel: ${response.status} - ${errorData.message || errorData.hint || "Unknown error"}`);
     }
     
     const data = await response.json();
