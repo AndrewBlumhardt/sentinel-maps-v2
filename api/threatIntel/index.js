@@ -115,13 +115,13 @@ module.exports = async function (context, req) {
     const result = await queryLogAnalytics(token, workspaceId, kqlQuery);
     context.log(`Query completed successfully`);
 
-    if (result.status === 0) { // Success
+    if (result.tables && result.tables.length > 0) {
       const table = result.tables[0];
       
       // Transform to simpler format
       const indicators = table.rows.map(row => {
         const obj = {};
-        table.columnDescriptors.forEach((col, idx) => {
+        table.columns.forEach((col, idx) => {
           obj[col.name] = row[idx];
         });
         return obj;
@@ -140,12 +140,21 @@ module.exports = async function (context, req) {
       };
     } else {
       context.res = {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=300"
+        },
         body: {
-          error: "Query failed",
-          details: result.partialError || "Unknown error"
-        }log.error("Error stack:", error.stack);
+          indicators: [],
+          count: 0,
+          message: "No data returned from query"
+        }
+      };
+    }
+  } catch (error) {
+    context.log.error("Error querying threat intel:", error);
+    context.log.error("Error stack:", error.stack);
     context.log.error("Error code:", error.code);
     
     // Provide more detailed error info
@@ -157,23 +166,18 @@ module.exports = async function (context, req) {
     };
     
     // Check for authentication errors
-    if (error.message?.includes("authentication") || error.message?.includes("credential")) {
-      errorDetails.hint = "Managed Identity may not have Log Analytics Reader role. Check Azure Portal -> Static Web App -> Identity -> Azure role assignments";
+    if (error.message?.includes("authentication") || error.message?.includes("credential") || error.message?.includes("MSI")) {
+      errorDetails.hint = "Managed Identity authentication failed. Check Azure Portal -> Static Web App -> Identity -> Azure role assignments";
     }
     
-    if (error.code === "WorkspaceNotFound") {
+    if (error.message?.includes("WorkspaceNotFound")) {
       errorDetails.hint = "Workspace ID may be incorrect or inaccessible";
     }
     
     context.res = {
       status: 500,
       headers: { "Content-Type": "application/json" },
-      body: errorDetailstatus: 500,
-      headers: { "Content-Type": "application/json" },
-      body: {
-        error: "Failed to query threat intelligence data",
-        message: error.message
-      }
+      body: errorDetails
     };
   }
 };
