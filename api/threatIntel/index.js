@@ -35,14 +35,26 @@ async function getManagedIdentityToken(resource) {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
+          // Log the raw response for debugging
+          console.log(`MSI Response Status: ${res.statusCode}`);
+          console.log(`MSI Response Data: ${data}`);
+          
+          if (res.statusCode !== 200) {
+            return reject(new Error(`MSI endpoint returned ${res.statusCode}: ${data}`));
+          }
+          
+          if (!data || data.trim() === '') {
+            return reject(new Error('MSI endpoint returned empty response'));
+          }
+          
           const json = JSON.parse(data);
           if (json.access_token) {
             resolve(json.access_token);
           } else {
-            reject(new Error(`No access_token in MSI response: ${data}`));
+            reject(new Error(`No access_token in MSI response: ${JSON.stringify(json)}`));
           }
         } catch (err) {
-          reject(new Error(`Failed to parse MSI response: ${err.message}`));
+          reject(new Error(`Failed to parse MSI response: ${err.message}. Raw data: ${data}`));
         }
       });
     });
