@@ -1,3 +1,4 @@
+const http = require('http');
 const https = require('https');
 
 // Custom function to get MSI token for Azure Static Web Apps
@@ -28,7 +29,8 @@ async function getManagedIdentityToken(resource) {
       options.headers['X-IDENTITY-HEADER'] = process.env.IDENTITY_HEADER;
     }
     
-    const req = https.request(options, (res) => {
+    // MSI endpoint uses HTTP (not HTTPS)
+    const req = http.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
