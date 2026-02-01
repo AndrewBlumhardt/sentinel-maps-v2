@@ -5,6 +5,12 @@ const https = require('https');
 async function getManagedIdentityToken(resource) {
   return new Promise((resolve, reject) => {
     const msiEndpoint = process.env.MSI_ENDPOINT || process.env.IDENTITY_ENDPOINT;
+    const msiSecret = process.env.MSI_SECRET || process.env.IDENTITY_HEADER;
+    
+    console.log(`MSI_ENDPOINT: ${msiEndpoint}`);
+    console.log(`MSI_SECRET exists: ${!!msiSecret}`);
+    console.log(`All env vars: ${JSON.stringify(Object.keys(process.env).filter(k => k.includes('MSI') || k.includes('IDENTITY')))}`);
+    
     if (!msiEndpoint) {
       return reject(new Error("MSI_ENDPOINT not available"));
     }
@@ -18,16 +24,19 @@ async function getManagedIdentityToken(resource) {
       port: url.port,
       path: url.pathname + url.search,
       method: 'GET',
-      headers: {}
+      headers: {
+        'Accept': 'application/json'
+      }
     };
     
-    // Add secret header if available
-    if (process.env.MSI_SECRET) {
-      options.headers['Secret'] = process.env.MSI_SECRET;
+    // Add secret header - try both formats
+    if (msiSecret) {
+      options.headers['X-IDENTITY-HEADER'] = msiSecret;
+      options.headers['Secret'] = msiSecret;
     }
-    if (process.env.IDENTITY_HEADER) {
-      options.headers['X-IDENTITY-HEADER'] = process.env.IDENTITY_HEADER;
-    }
+    
+    console.log(`Request URL: ${url.protocol}//${url.hostname}:${url.port}${url.pathname}${url.search}`);
+    console.log(`Request headers: ${JSON.stringify(options.headers)}`);
     
     // MSI endpoint uses HTTP (not HTTPS)
     const req = http.request(options, (res) => {
