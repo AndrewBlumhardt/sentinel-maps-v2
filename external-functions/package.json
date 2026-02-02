@@ -1,0 +1,14 @@
+{
+  "name": "sentinel-maps-functions",
+  "version": "1.0.0",
+  "description": "Standalone Azure Functions for Sentinel Maps",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@azure/identity": "^4.0.0",
+    "@azure/monitor-query": "^1.3.3"
+  },
+  "devDependencies": {}
+}
