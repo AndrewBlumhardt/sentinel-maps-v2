@@ -54,27 +54,52 @@ module.exports = async function (context, req) {
       };
     } else {
       context.log.error("Query returned non-zero status:", result.status);
+      context.log.error("Partial error:", JSON.stringify(result.partialError));
       context.res = {
         status: 500,
         headers: { "Content-Type": "application/json" },
         body: {
           error: "Query failed",
-          details: result.partialError || "Unknown error"
+          details: result.partialError || "Unknown error",
+          status: result.status,
+          hint: "Check Function App Managed Identity has 'Log Analytics Reader' role"
         }
       };
     }
   } catch (error) {
     context.log.error("Error querying threat intel:", error);
     context.log.error("Error stack:", error.stack);
+    context.log.error("Error code:", error.code);
+    context.log.error("Error message:", error.message);
+    
+    // Provide detailed error information
+    let errorDetails = {
+      error: "Failed to query threat intelligence data",
+      message: error.message,
+      errorType: error.constructor.name,
+      errorCode: error.code || "UNKNOWN",
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add specific hints based on error type
+    if (error.message?.includes("authentication") || error.message?.includes("credential") || error.message?.includes("401") || error.message?.includes("403")) {
+      errorDetails.hint = "Managed Identity authentication failed. Ensure Function App has system-assigned identity enabled and 'Log Analytics Reader' role assigned.";
+      errorDetails.troubleshooting = [
+        "1. Check Azure Portal → Function App → Identity → System assigned is 'On'",
+        "2. Check Azure Portal → Log Analytics Workspace → Access control (IAM) → Role assignments",
+        "3. Ensure Managed Identity has 'Log Analytics Reader' role"
+      ];
+    }
+    
+    if (error.message?.includes("WorkspaceNotFound") || error.message?.includes("workspace")) {
+      errorDetails.hint = "Workspace ID may be incorrect or inaccessible";
+      errorDetails.workspaceId = "7e65e430-26bf-456e-9b41-4fa4226a45f2";
+    }
     
     context.res = {
       status: 500,
       headers: { "Content-Type": "application/json" },
-      body: {
-        error: "Failed to query threat intelligence data",
-        message: error.message,
-        timestamp: new Date().toISOString()
-      }
+      body: errorDetails
     };
   }
 };
