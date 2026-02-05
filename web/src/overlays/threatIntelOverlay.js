@@ -102,7 +102,8 @@ async function enable(map) {
   try {
     // Fetch threat intelligence data from standalone Function App
     console.log("Fetching threat intel data from external Function App...");
-    const response = await fetch("/api/threatIntel");
+    // Use the standalone Function App which properly supports Managed Identity
+    const response = await fetch("https://sentinel-maps-v2-api-gsgwe6fjemf4ejep.centralus-01.azurewebsites.net/api/threatIntel");
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("API Error Details:", errorData);
