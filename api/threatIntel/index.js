@@ -1,120 +1,5 @@
-const http = require('http');
-const https = require('https');
-
-// Custom function to get MSI token for Azure Static Web Apps
-async function getManagedIdentityToken(resource) {
-  return new Promise((resolve, reject) => {
-    const msiEndpoint = process.env.MSI_ENDPOINT || process.env.IDENTITY_ENDPOINT;
-    const msiSecret = process.env.MSI_SECRET || process.env.IDENTITY_HEADER;
-    
-    console.log(`MSI_ENDPOINT: ${msiEndpoint}`);
-    console.log(`MSI_SECRET exists: ${!!msiSecret}`);
-    console.log(`All env vars: ${JSON.stringify(Object.keys(process.env).filter(k => k.includes('MSI') || k.includes('IDENTITY')))}`);
-    
-    if (!msiEndpoint) {
-      return reject(new Error("MSI_ENDPOINT not available"));
-    }
-    
-    const url = new URL(msiEndpoint);
-    url.searchParams.set('resource', resource);
-    url.searchParams.set('api-version', '2019-08-01');
-    
-    const options = {
-      hostname: url.hostname,
-      port: url.port,
-      path: url.pathname + url.search,
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    };
-    
-    // Add secret header - try both formats
-    if (msiSecret) {
-      options.headers['X-IDENTITY-HEADER'] = msiSecret;
-      options.headers['Secret'] = msiSecret;
-    }
-    
-    console.log(`Request URL: ${url.protocol}//${url.hostname}:${url.port}${url.pathname}${url.search}`);
-    console.log(`Request headers: ${JSON.stringify(options.headers)}`);
-    
-    // MSI endpoint uses HTTP (not HTTPS)
-    const req = http.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          // Log the raw response for debugging
-          console.log(`MSI Response Status: ${res.statusCode}`);
-          console.log(`MSI Response Data: ${data}`);
-          
-          if (res.statusCode !== 200) {
-            return reject(new Error(`MSI endpoint returned ${res.statusCode}: ${data}`));
-          }
-          
-          if (!data || data.trim() === '') {
-            return reject(new Error('MSI endpoint returned empty response'));
-          }
-          
-          const json = JSON.parse(data);
-          if (json.access_token) {
-            resolve(json.access_token);
-          } else {
-            reject(new Error(`No access_token in MSI response: ${JSON.stringify(json)}`));
-          }
-        } catch (err) {
-          reject(new Error(`Failed to parse MSI response: ${err.message}. Raw data: ${data}`));
-        }
-      });
-    });
-    
-    req.on('error', reject);
-    req.setTimeout(5000, () => {
-      req.destroy();
-      reject(new Error('MSI token request timeout'));
-    });
-    req.end();
-  });
-}
-
-// Query Log Analytics using REST API
-async function queryLogAnalytics(accessToken, workspaceId, query) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({ query, timespan: 'P30D' });
-    
-    const options = {
-      hostname: 'api.loganalytics.io',
-      path: `/v1/workspaces/${workspaceId}/query`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-    
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          resolve(json);
-        } catch (err) {
-          reject(new Error(`Failed to parse Log Analytics response: ${err.message}`));
-        }
-      });
-    });
-    
-    req.on('error', reject);
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(new Error('Log Analytics query timeout'));
-    });
-    req.write(body);
-    req.end();
-  });
-}
+const { DefaultAzureCredential } = require("@azure/identity");
+const { LogsQueryClient } = require("@azure/monitor-query");
 
 module.exports = async function (context, req) {
   context.log("threatIntel function invoked");
@@ -122,9 +7,9 @@ module.exports = async function (context, req) {
   try {
     const workspaceId = "7e65e430-26bf-456e-9b41-4fa4226a45f2";
     
-    context.log("Getting Managed Identity token...");
-    const token = await getManagedIdentityToken('https://api.loganalytics.io');
-    context.log("Token acquired successfully");
+    context.log("Creating credential and client...");
+    const credential = new DefaultAzureCredential();
+    const logsQueryClient = new LogsQueryClient(credential);
     
     const kqlQuery = `ThreatIntelIndicators
 | extend Description = Data.description
@@ -135,21 +20,26 @@ module.exports = async function (context, req) {
 | project ObservableValue, SourceSystem, Type, Label, Confidence, Description, Created, IsActive`;
 
     context.log(`Querying workspace: ${workspaceId}`);
-    const result = await queryLogAnalytics(token, workspaceId, kqlQuery);
-    context.log(`Query completed successfully`);
+    const result = await logsQueryClient.queryWorkspace(
+      workspaceId,
+      kqlQuery,
+      { duration: "P30D" }
+    );
 
-    if (result.tables && result.tables.length > 0) {
+    if (result.status === 0) { // Success
       const table = result.tables[0];
       
       // Transform to simpler format
       const indicators = table.rows.map(row => {
         const obj = {};
-        table.columns.forEach((col, idx) => {
+        table.columnDescriptors.forEach((col, idx) => {
           obj[col.name] = row[idx];
         });
         return obj;
       });
 
+      context.log(`Query successful, returning ${indicators.length} indicators`);
+      
       context.res = {
         status: 200,
         headers: {
@@ -162,16 +52,16 @@ module.exports = async function (context, req) {
         }
       };
     } else {
+      context.log.error("Query returned non-zero status:", result.status);
+      context.log.error("Partial error:", JSON.stringify(result.partialError));
       context.res = {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=300"
-        },
+        status: 500,
+        headers: { "Content-Type": "application/json" },
         body: {
-          indicators: [],
-          count: 0,
-          message: "No data returned from query"
+          error: "Query failed",
+          details: result.partialError || "Unknown error",
+          status: result.status,
+          hint: "Check Static Web App Managed Identity has 'Log Analytics Reader' role"
         }
       };
     }
@@ -179,22 +69,30 @@ module.exports = async function (context, req) {
     context.log.error("Error querying threat intel:", error);
     context.log.error("Error stack:", error.stack);
     context.log.error("Error code:", error.code);
+    context.log.error("Error message:", error.message);
     
-    // Provide more detailed error info
+    // Provide detailed error information
     let errorDetails = {
       error: "Failed to query threat intelligence data",
       message: error.message,
+      errorType: error.constructor.name,
       errorCode: error.code || "UNKNOWN",
       timestamp: new Date().toISOString()
     };
     
-    // Check for authentication errors
-    if (error.message?.includes("authentication") || error.message?.includes("credential") || error.message?.includes("MSI")) {
-      errorDetails.hint = "Managed Identity authentication failed. Check Azure Portal -> Static Web App -> Identity -> Azure role assignments";
+    // Add specific hints based on error type
+    if (error.message?.includes("authentication") || error.message?.includes("credential") || error.message?.includes("401") || error.message?.includes("403")) {
+      errorDetails.hint = "Managed Identity authentication failed. Ensure Static Web App has system-assigned identity enabled and 'Log Analytics Reader' role assigned.";
+      errorDetails.troubleshooting = [
+        "1. Check Azure Portal → Static Web App → Identity → System assigned is 'On'",
+        "2. Check Azure Portal → Log Analytics Workspace → Access control (IAM) → Role assignments",
+        "3. Ensure Managed Identity has 'Log Analytics Reader' role"
+      ];
     }
     
-    if (error.message?.includes("WorkspaceNotFound")) {
+    if (error.message?.includes("WorkspaceNotFound") || error.message?.includes("workspace")) {
       errorDetails.hint = "Workspace ID may be incorrect or inaccessible";
+      errorDetails.workspaceId = "7e65e430-26bf-456e-9b41-4fa4226a45f2";
     }
     
     context.res = {
